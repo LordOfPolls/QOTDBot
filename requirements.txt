@@ -1,0 +1,10 @@
+aiomysql
+sshtunnel
+discord
+pillow
+aiofiles
+colorlog
+numpy
+scipy
+apscheduler
+fuzzywuzzy[speedup]
