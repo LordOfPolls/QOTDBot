@@ -136,7 +136,7 @@ async def cmdServer(ctx):
 
 @bot.command(name="Shutdown", brief="Shuts down the bot")
 async def cmdShutdown(ctx: commands.Context):
-    if bot.is_owner(ctx.author):
+    if await bot.is_owner(ctx.author):
         log.warning("Shutdown called")
         await ctx.send("Shutting down 🌙")
         await bot.close()
