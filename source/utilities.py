@@ -118,6 +118,7 @@ async def acknowledge(ctx):
     except discord.NotFound:
         pass
 
+
 def getDiscordBotsToken():
     try:
         file = open("data/DBtoken.pkl", "rb")
@@ -184,8 +185,8 @@ async def checkGuildIsSetup(ctx):
         getOne=True
     )
     embed = defaultEmbed(title="Config Error", colour=discord.Colour.orange())
-    embed.description = "You have not run the initial setup yet"
-    embed.set_footer(text="An admin needs to run \"/setup simple\" to set up your server")
+    embed.description = "You have not run the initial setup yet\n" \
+                        "Someone with manage-server perms or higher needs to run \"/setup simple\" to set up your server"
     if guildData['qotdChannel'] is None:
         await ctx.send(embed=embed)
         return False
