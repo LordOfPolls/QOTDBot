@@ -184,17 +184,15 @@ async def checkGuildIsSetup(ctx):
         getOne=True
     )
     embed = defaultEmbed(title="Config Error", colour=discord.Colour.orange())
+    embed.description = "You have not run the initial setup yet"
     embed.set_footer(text="An admin needs to run \"/setup simple\" to set up your server")
     if guildData['qotdChannel'] is None:
-        embed.description = "You have not set a qotd channel"
         await ctx.send(embed=embed)
         return False
     if guildData['timeZone'] is None:
-        embed.description = "You have not set your timezone"
         await ctx.send(embed=embed)
         return False
     if guildData['sendTime'] is None:
-        embed.description = "You have not set a send time"
         await ctx.send(embed=embed)
         return False
     return True
