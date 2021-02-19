@@ -152,10 +152,16 @@ async def cmdServer(ctx):
 
 @bot.event
 async def on_slash_command(ctx: SlashContext):
+    subcommand = ""
+    try:
+        if ctx.subcommand:
+            subcommand = ctx.subcommand
+    except AttributeError:
+        pass
     if ctx.guild:
-        log.info(f"CMD - {ctx.guild.id}::{ctx.author.id}: {ctx.command}")
+        log.info(f"CMD - {ctx.guild.id}::{ctx.author.id}: {ctx.command} {subcommand}")
     else:
-        log.info(f"CMD - Direct Message::{ctx.author.id}: {ctx.command}")
+        log.info(f"CMD - Direct Message::{ctx.author.id}: {ctx.command} {subcommand}")
 
 
 @bot.event
