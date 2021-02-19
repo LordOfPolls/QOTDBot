@@ -109,6 +109,7 @@ async def helpCMD(ctx):
                 embed.add_field(name=f"{cmd.name} {subcmd.name}", value=subcmd.description, inline=True)
         else:
             embed.add_field(name=cmd.name, value=cmd.description, inline=False)
+    embed.add_field(name="For assistance join my server:", value="https://discord.gg/V82f6HBujR", inline=False)
     embed.set_footer(
         text="All of the commands are integrated into your servers slash commands, to access them type ``/``")
     await ctx.send(embed=embed)
@@ -170,6 +171,7 @@ async def on_command_error(ctx, ex):
         return
     log.error(f"Error in {ctx.guild.id}: {ex}")
 
+
 @bot.event
 async def on_slash_command_error(ctx, ex):
     if isinstance(ex, discord.errors.Forbidden):
@@ -180,6 +182,7 @@ async def on_slash_command_error(ctx, ex):
         log.error(ex)
         await ctx.send("An un-handled error has occurred, and has been logged, please try again later.\n"
                        "If this continues please use ``/server`` and report it in my server")
+
 
 @bot.event
 async def on_guild_join(guild: discord.Guild):
@@ -193,14 +196,16 @@ async def on_guild_join(guild: discord.Guild):
     )
     try:
         await guild.owner.send(f"Hi there, I am **QOTDBot**. I was just added to your server ({guild.name})\n"
-                               f"To get started, simply type ``/setup simple`` in your server")
+                               f"To get started, simply type ``/setup simple`` in your server\n"
+                               f"If you have any issues join my server: https://discord.gg/V82f6HBujR")
         log.debug("Sent join dm to guild owner")
         return
     except:
         if guild.system_channel:
             try:
                 await guild.system_channel.send("Hi there!\nI am **QOTDBot**\n"
-                                                "To get started, simply type ``/setup simple`` (you will need manage server perms)")
+                                                "To get started, simply type ``/setup simple`` (you will need manage server perms)\n"
+                                                "If you have any issues join my server: https://discord.gg/V82f6HBujR")
                 log.debug("Send join message to system channel")
                 return
             except:
