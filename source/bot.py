@@ -194,7 +194,7 @@ async def on_slash_command_error(ctx, ex):
 @bot.event
 async def on_guild_join(guild: discord.Guild):
     """Called when bot is added to a guild"""
-    log.info(f"Joined Guild {guild.id}")
+    log.info(f"Joined Guild {guild.id}. {len([m for m in guild.members if not m.bot])} users")
     await statsSystem()
 
     await bot.db.execute(
