@@ -69,35 +69,36 @@ class DBConnector:
         async with self.dbPool.acquire() as conn:
             return conn.escape_string(inputString)
 
-    def _connectToServer(self):
-        """Creates a connection to the database server, be it via tunnel, if a tunnel isn't required, define tunnel as none"""
-        if True:
-            # If we're not on linux, the db ain't here, so we create an ssh tunnel to it
-            # I ain't opening the db up to remote access, are you mad?
-            tunnel = sshtunnel.open_tunnel((serverAddress, serverPort),
-                                           ssh_username=sshUser,
-                                           ssh_pkey="opensshkey.ppk",
-                                           remote_bind_address=(localAddress, localPort),
-                                           local_bind_address=(localAddress, localPort),
-                                           logger=utilities.getLog("tunnel", logging.CRITICAL))
-            tunnel.start()
-            while not tunnel.is_active:
+    async def _connect(self):
+        """Creates a connection to the database, either directly or through a tunnel"""
+        log.debug("Attempting to connect to local database")
+        try:
+            self.dbPool = await aiomysql.create_pool(
+                user=DBUser,
+                password=DBPass,
+                host="127.0.0.1",
+                port=3306,
+                auth_plugin="mysql_native_password",
+                maxsize=10
+            )
+        except:
+            # Probably working on a dev machine, create a tunnel
+            log.warning("Unable to connect to database, attempting to create SSH Tunnel")
+            self.tunnel = sshtunnel.open_tunnel((serverAddress, serverPort),
+                                                ssh_username=sshUser,
+                                                ssh_pkey="opensshkey.ppk",
+                                                remote_bind_address=(localAddress, localPort),
+                                                local_bind_address=(localAddress, localPort),
+                                                logger=utilities.getLog("tunnel", logging.CRITICAL))
+            self.tunnel.start()
+            while not self.tunnel.is_active:
                 # Wait for the tunnel to be considered active
                 time.sleep(0.1)
-
             log.info(
-                f"Connected to DB Server: {tunnel.is_active}. LocalAddr: {tunnel.local_bind_host}:{tunnel.local_bind_port}")
-            self.tunnel = tunnel
-        else:
-            log.debug("Tunnel not required, running on host server")
-            self.tunnel = None
-            return
-
-    async def _connectToDB(self):
-        """Connects to the db, with a tunnel, or locally"""
-        try:
-            if self.tunnel:
-                log.debug("Connecting to tunneled database")
+                f"Connected to DB Server: {self.tunnel.is_active}. "
+                f"LocalAddr: {self.tunnel.local_bind_host}:{self.tunnel.local_bind_port}")
+            log.debug("Attempting to connect to tunneled database")
+            try:
                 self.dbPool = await aiomysql.create_pool(
                     user=DBUser,
                     password=DBPass,
@@ -106,100 +107,61 @@ class DBConnector:
                     auth_plugin="mysql_native_password",
                     maxsize=10,
                 )
-            else:
-                log.debug("Connecting to local database")
-                self.dbPool = await aiomysql.create_pool(
-                    user=DBUser,
-                    password=DBPass,
-                    host="127.0.0.1",
-                    port=3306,
-                    auth_plugin="mysql_native_password",
-                    maxsize=10
-                )
-
-            # Configure db to accept emoji inputs (i wish users didnt do this, but i cant stop em)
-            await self.execute('SET NAMES utf8mb4;')
-            await self.execute('SET CHARACTER SET utf8mb4;')
-            await self.execute('SET character_set_connection=utf8mb4;')
-
-            databases = await self.execute("SHOW SCHEMAS")
-            log.info(f"Database connection established. {len(databases)} schemas found")
-            return True
-        except Exception as e:
-            log.critical(e)
-            return False
-
-    async def execute(self, query, getOne=False):
-        """
-        Execute a database operation
-        :param query: the operation you want to make
-        :param getOne: If you only want one item, set this to true
-        :return: a dict of the operations return, or None
-        """
-        try:
-            log.debug(f"Executing query - {query}")
-            if self.tunnel:
-                if not self.tunnel.is_active:
-                    # If we lose the tunnel, wait a short while, and try and reconnect
-                    log.warning("Detected DB Tunnel Closed, waiting 30 seconds before attempting to re-connect")
-                    while not self.tunnel.is_active:
-                        await asyncio.sleep(30)
-                        log.warning("Attempting to re-establish DB Tunnel")
-                        try:
-                            await self.loop.run_in_executor(self.threadPool, self._connectToServer)
-                        except Exception as e:
-                            log.error(e)
-                    log.debug(
-                        "Tunnel re-opened. Assuming server restart, waiting 30 seconds before resuming operations")
-                    await asyncio.sleep(30)
-                    log.debug(f"Resubmitting query: {query}")
-
-            try:
-                async with self.dbPool.acquire() as conn:
-                    log.debug("Validating connection")
-                    await conn.ping(reconnect=True)  # ping the database, to make sure we have a connection
             except Exception as e:
-                log.error(f"{e}")
-                await asyncio.sleep(5)  # sleep for a few seconds
-                await self.connect()  # Attempt to reconnect
+                log.critical(f"Failed to connect to db, aborting startup: {e}")
+                exit(1)
 
+        # Configure db to accept emoji inputs (i wish users didnt do this, but i cant stop em)
+        await self.execute('SET NAMES utf8mb4;')
+        await self.execute('SET CHARACTER SET utf8mb4;')
+        await self.execute('SET character_set_connection=utf8mb4;')
+
+        databases = await self.execute("SHOW SCHEMAS")
+        log.info(f"Database connection established. {len(databases)} schemas found")
+        return True
+
+    async def execute(self, query: str, getOne: bool = False) -> (dict or None):
+        """
+        Execute a database query
+        :param query: The query you want to make
+        :param getOne: If you only want one item, set this to True
+        :return: a dict representing the mysql result, or None
+        """
+
+        try:
+            # make sure we have a connection first
             async with self.dbPool.acquire() as conn:
-                async with conn.cursor(aiomysql.SSDictCursor) as cur:
-                    try:
-                        self.operations += 1  # useless, but i like to track how many operations im making
+                await conn.ping(reconnect=True)  # ping the database, to make sure we have a connection
+        except Exception as e:
+            log.error(f"{e}")
+            await asyncio.sleep(5)  # sleep for a few seconds
+            await self.connect()  # Attempt to reconnect
 
-                        await cur.execute(query)  # execute the query
-                        if not getOne:
-                            result = await cur.fetchall()
-                        else:
-                            result = await cur.fetchone()
-                    except Exception as e:
-                        raise e
+        try:
+            log.debug(f"Executing Query - {query}")
+
+            async with self.dbPool.acquire() as connection:
+                async with connection.cursor(aiomysql.SSDictCursor) as cursor:
+                    await cursor.execute(query)  # execute the query
+                    if not getOne:
+                        result = await cursor.fetchall()
+                    else:
+                        result = await cursor.fetchone()
                     if isinstance(result, tuple):
                         if len(result) == 0:
                             return None
-                    await cur.close()
-                await conn.commit()
+                    await cursor.close()
+                await connection.commit()
             return result
         except Exception as e:
-            try:
-                cur.close()
-            except:
-                pass
             log.error(e)
             if "cannot connect" in str(e):
-                await asyncio.sleep(1)
+                await asyncio.sleep(5)
                 await self.execute(query=query, getOne=getOne)
 
     async def connect(self):
         """Public function to connect to the database"""
-        if self.tunnel:
-            if not self.tunnel.is_active:
-                await self.loop.run_in_executor(self.threadPool, self._connectToServer)
-        else:
-            await self.loop.run_in_executor(self.threadPool, self._connectToServer)
-
-        await self._connectToDB()
+        await self._connect()
 
 
 class Time:
