@@ -92,11 +92,12 @@ async def statsSystem():
 @slash.slash(name="help", description="A helpful message")
 async def helpCMD(ctx):
     await ctx.respond()
+
     commands = slash.commands
     subcommands = slash.subcommands
     embed = utilities.defaultEmbed(title="")
     embed.set_author(name="Command List", icon_url=bot.user.avatar_url)
-    pprint(subcommands)
+
     for key in commands:
         cmd: slshModel.CommandObject = commands[key]
         if cmd.has_subcommands:
@@ -199,22 +200,45 @@ async def on_guild_join(guild: discord.Guild):
         f"INSERT INTO QOTDBot.guilds SET guildID = '{guild.id}', prefix = '/' "
         f"ON DUPLICATE KEY UPDATE guildID = '{guild.id}'"
     )
+    embed = utilities.defaultEmbed(title="Hello!")
+    message = "[intro]\n" \
+              "To get started, simply type ``/setup simple`` in the server " \
+              "(note you will need manage_server perms or higher)\n\n" \
+              "If you have any issues, join my server: https://discord.gg/V82f6HBujR"
+    me = guild.get_member(user_id=bot.user.id)
     try:
-        await guild.owner.send(f"Hi there, I am **QOTDBot**. I was just added to your server ({guild.name})\n"
-                               f"To get started, simply type ``/setup simple`` in your server\n"
-                               f"If you have any issues join my server: https://discord.gg/V82f6HBujR")
-        log.debug("Sent join dm to guild owner")
-        return
-    except:
-        if guild.system_channel:
-            try:
-                await guild.system_channel.send("Hi there!\nI am **QOTDBot**\n"
-                                                "To get started, simply type ``/setup simple`` (you will need manage server perms)\n"
-                                                "If you have any issues join my server: https://discord.gg/V82f6HBujR")
-                log.debug("Send join message to system channel")
-                return
-            except:
-                pass
+        # try and find a place that we can send our greeting
+        # system channel -> general channel -> guild owner
+        if guild.system_channel and \
+                me.permissions_in(guild.system_channel).send_messages and \
+                me.permissions_in(guild.system_channel).embed_links:
+
+            embed.description = message.replace("[intro]", f"I am **{bot.user.name}**")
+            embed.set_footer(text="this message was sent here as this is set as your system channel")
+
+            await guild.system_channel.send(embed=embed)
+            return log.debug("Sent greeting in system channel")
+
+        elif "general" in str([c.name.lower() for c in guild.text_channels]):
+            for channel in guild.text_channels:
+                if "general" in channel.name.lower() and \
+                        me.permissions_in(channel).send_messages and \
+                        me.permissions_in(channel).embed_links:
+                    embed.description = message.replace("[intro]", f"I am **{bot.user.name}**")
+                    embed.set_footer(text="this message was sent here as I could not find a system channel, "
+                                          "and this had \"general\" in the name")
+                    await channel.send(embed=embed)
+                    return log.debug("Sent greeting in general channel")
+
+        embed.description = message.replace("[intro]",
+                                            f"I am **{bot.user.name}**. I was just added to *{guild.name}*")
+        embed.set_footer(
+            text="this message was sent here as this is set as your server does not have a system channel")
+        await guild.owner.send(embed=embed)
+        return log.debug("Sent greeting in owner dm")
+
+    except Exception as e:
+        log.error(f"Error sending greeting message: {guild.id}::{e}")
     log.warning(f"Could not send greeting message in {guild.id}")
 
 
