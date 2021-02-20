@@ -37,7 +37,7 @@ class Config(commands.Cog):
     async def getQotdChannel(self, ctx: commands.Context, _emb: discord.Embed, step: tuple = None) -> bool:
         """Asks what channel to send to"""
         _emb.description = \
-            f"🔍**Where do you want your questions to be posted?**\n" \
+            f"🔍**What channel do you want questions to be posted in?**🔍\n" \
             f"Please mention the channel\n\n" \
             f"Example: \"{ctx.channel.mention}\""
         if step:
@@ -62,15 +62,14 @@ class Config(commands.Cog):
     async def getTimeZone(self, ctx: commands.Context, _emb: discord.Embed, step: tuple = None) -> bool:
         """Asks for the users timezone"""
         _emb.description = \
-            f"🌍**Please tell me what timezone your server is in**\n" \
-            f"This is used to send questions at the right time for you.\n\n" \
-            f"A map of timezones can be found [here](https://kevinnovak.github.io/Time-Zone-Picker/)\n\n" \
-            f"**Note:** Please do not use time zone abbreviations like EST, UTC, or GMT. " \
-            f"Instead use this format: **<region>/<city>**\n\n" \
-            f"**Examples:**\n" \
-            f"Europe/London\n" \
-            f"America/New_York\n" \
-            f"Australia/Sydney"
+            "🌍**Please tell me what time zone your server is in**🌏\n" \
+            "A map of time zones can be found [here](https://kevinnovak.github.io/Time-Zone-Picker/)\n" \
+            "**Note:** Please do not use abbreviations like EST, UTC, or GMT. Instead use the full format, " \
+            "i.e. **<region>/<city>**\n\n" \
+            "**Examples:**\n" \
+            "Europe/London\n" \
+            "America/New_York\n" \
+            "Australia/Sydney"
         if step:
             _emb.set_footer(text=f"Step {step[0]}/{step[1]}")
         msg = await ctx.send(embed=_emb)
@@ -114,7 +113,7 @@ class Config(commands.Cog):
     async def getTime(self, ctx: commands.Context, _emb: discord.Embed, step: tuple = None) -> bool:
         """Asks what time the question should be posted at"""
         _emb.description = \
-            f"🕖**What time would you like to be asked?**\n" \
+            f"🕖**At what time would you like questions to be asked?**🕖\n" \
             f"Please enter the hour of the day you'd like to get a question\n\n" \
             f"This should be a number from 0 to 23, as per the 24-hour clock.\n\n" \
             f"**Example:** 7"
