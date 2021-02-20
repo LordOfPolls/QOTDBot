@@ -151,6 +151,7 @@ class DBConnector:
                             return None
                     await cursor.close()
                 await connection.commit()
+            self.operations += 1
             return result
         except Exception as e:
             log.error(e)
