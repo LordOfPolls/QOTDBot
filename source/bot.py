@@ -248,7 +248,20 @@ async def on_guild_join(guild: discord.Guild):
 async def on_guild_remove(guild):
     if guild.id == 110373943822540800:
         return
-    log.info(f"Left Guild {guild.id}")
+    log.info(f"Left Guild {guild.id}| Purging data...")
+    try:
+        await bot.db.execute(
+            f"DELETE FROM QOTDBot.questionLog WHERE guildID = '{guild.id}'"
+        )
+        await bot.db.execute(
+            f"DELETE FROM QOTDBot.questions WHERE guildID = '{guild.id}'"
+        )
+        await bot.db.execute(
+            f"DELETE FROM QOTDBot.guilds WHERE guildID = '{guild.id}'"
+        )
+        log.debug(f"{guild.id}:: Data Purged")
+    except Exception as e:
+        log.critical(f"FAILED TO PURGE DATA FOR {guild.id}: {e}")
     await statsSystem()
 
 
