@@ -225,6 +225,7 @@ class Config(commands.Cog):
                 _emb = utilities.defaultEmbed(title="Set Time", colour=discord.Colour.green())
                 _emb.description = f"Your questions will be sent at **{hour:02}:00**"
                 await ctx.send(embed=_emb)
+                await self.submitToQOTD(ctx.guild)
 
     @cog_ext.cog_subcommand(base="setup", name="TimeZone", description="Sets the timezone for your server",
                             options=[
@@ -270,6 +271,7 @@ class Config(commands.Cog):
                     _emb.colour = discord.Colour.green()
                     _emb.description = f"Your timezone has been set to **{mostSimilar[0]}**"
                     await msg.edit(embed=_emb)
+                    await self.submitToQOTD(ctx.guild)
                     return True
                 else:
                     _emb.colour = discord.Colour.orange()
