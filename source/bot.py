@@ -250,11 +250,13 @@ async def on_guild_remove(guild):
 
 @bot.event
 async def on_member_join(member):
-    log.info("Member added event")
-    await statsSystem()
+    if not member.bot:
+        log.info("Member added event")
+        await statsSystem()
 
 
 @bot.event
 async def on_member_remove(member):
-    log.info("Member removed event")
-    await statsSystem()
+    if not member.bot:
+        log.info("Member removed event")
+        await statsSystem()
