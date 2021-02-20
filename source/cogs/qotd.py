@@ -1,23 +1,19 @@
 import asyncio
-import pprint
+import logging
 import random
+from collections import Counter
+from datetime import datetime
 
 import discord
-import pytz
-from datetime import datetime
-import numpy.random as npRand
-import logging
-from fuzzywuzzy import fuzz
+from apscheduler.jobstores.base import JobLookupError
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers import cron
 from discord.ext import commands, tasks
 from discord_slash import cog_ext, SlashContext
 from discord_slash.utils import manage_commands
+from fuzzywuzzy import fuzz
+
 from source import utilities, dataclass
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers import cron
-from apscheduler.jobstores.base import JobLookupError
-from collections import Counter
-import json
-from apscheduler.job import Job
 
 log = utilities.getLog("Cog::qotd")
 log.setLevel(logging.DEBUG)

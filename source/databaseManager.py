@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import os
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime

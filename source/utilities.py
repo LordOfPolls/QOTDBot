@@ -1,22 +1,23 @@
 import asyncio
-import os
-
-import discord
-import colorlog
-import logging
-from PIL import Image
-import numpy as np
-import scipy.cluster
 import binascii
+import logging
+import os
 import pickle
-import aiohttp
-import aiofiles
-from colorlog import ColoredFormatter
 from concurrent.futures import ThreadPoolExecutor
-from discord_slash.utils import manage_commands
 from datetime import datetime
-from tzlocal import get_localzone
+
+import aiofiles
+import aiohttp
+import colorlog
+import discord
+import numpy as np
 import pytz
+import scipy.cluster
+from PIL import Image
+from colorlog import ColoredFormatter
+from discord_slash.utils import manage_commands
+from tzlocal import get_localzone
+
 import source.pagination as pagination
 
 paginator = pagination
@@ -74,32 +75,6 @@ def getLog(filename, level=logging.DEBUG) -> logging:
     return log
 
 
-def getPrefix(_bot: commands.Bot, message: discord.message):
-    """Dictates the prefix for the bot"""
-    default = ">"
-    if not message.guild:
-        # If used in dm
-        if message.content.startswith(default):
-            return default
-        if message.content.startswith(_bot.user.mention):
-            return commands.when_mentioned(_bot, message)
-        return ""
-
-    else:
-        if message.content.startswith(default):
-            return default
-        if message.content.startswith(_bot.user.mention):
-            return commands.when_mentioned(_bot, message)
-    return default
-
-
-def actuallyReady(_bot):
-    if _bot.uberReady:
-        return True
-    else:
-        return False
-
-
 def getToken():
     try:
         file = open("data/token.pkl", "rb")
@@ -110,13 +85,6 @@ def getToken():
         pickle.dump(token, file)
     file.close()
     return token
-
-
-async def acknowledge(ctx):
-    try:
-        await ctx.respond()
-    except discord.NotFound:
-        pass
 
 
 def getDiscordBotsToken():
@@ -207,21 +175,6 @@ async def slashCheck(ctx):
     else:
         await ctx.send("Sorry, you can't use that here")
     return False
-
-
-async def getMessage(cog, messageID: int, channel: discord.TextChannel) -> (discord.Message, None):
-    """Gets a message using the id given"""
-    for message in cog.Bot.cached_messages:
-        # Check if the message is in the cache to save querying discord
-        if message.id == messageID:
-            return message
-
-    # try and find the message in the channel
-    o = discord.Object(id=messageID + 1)
-    msg = await channel.history(limit=1, before=o).next()
-    if messageID == msg.id:
-        return msg
-    return None
 
 
 def createBooleanOption(name, description="Yes or no", required=False) -> dict:

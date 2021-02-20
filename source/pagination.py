@@ -8,14 +8,13 @@ import typing as t
 from contextlib import suppress
 
 import discord
-from discord import Member
 from discord.abc import User
 from discord.ext.commands import Context, Paginator
 
-FIRST_EMOJI = "\u23EE"   # [:track_previous:]
-LEFT_EMOJI = "\u2B05"    # [:arrow_left:]
-RIGHT_EMOJI = "\u27A1"   # [:arrow_right:]
-LAST_EMOJI = "\u23ED"    # [:track_next:]
+FIRST_EMOJI = "\u23EE"  # [:track_previous:]
+LEFT_EMOJI = "\u2B05"  # [:arrow_left:]
+RIGHT_EMOJI = "\u27A1"  # [:arrow_right:]
+LAST_EMOJI = "\u23ED"  # [:track_next:]
 
 PAGINATION_EMOJI = (FIRST_EMOJI, LEFT_EMOJI, RIGHT_EMOJI, LAST_EMOJI)
 
@@ -46,12 +45,12 @@ class LinePaginator(Paginator):
     """
 
     def __init__(
-        self,
-        prefix: str = '```',
-        suffix: str = '```',
-        max_size: int = 2000,
-        scale_to_size: int = 2000,
-        max_lines: t.Optional[int] = None
+            self,
+            prefix: str = '```',
+            suffix: str = '```',
+            max_size: int = 2000,
+            scale_to_size: int = 2000,
+            max_lines: t.Optional[int] = None
     ) -> None:
         """
         This function overrides the Paginator.__init__ from inside discord.ext.commands.
@@ -186,21 +185,21 @@ class LinePaginator(Paginator):
 
     @classmethod
     async def paginate(
-        cls,
-        lines: t.List[str],
-        ctx: Context,
-        embed: discord.Embed,
-        prefix: str = "",
-        suffix: str = "",
-        max_lines: t.Optional[int] = None,
-        max_size: int = 500,
-        scale_to_size: int = 2000,
-        empty: bool = True,
-        restrict_to_user: User = None,
-        timeout: int = 300,
-        footer_text: str = None,
-        url: str = None,
-        exception_on_empty_embed: bool = False,
+            cls,
+            lines: t.List[str],
+            ctx: Context,
+            embed: discord.Embed,
+            prefix: str = "",
+            suffix: str = "",
+            max_lines: t.Optional[int] = None,
+            max_size: int = 500,
+            scale_to_size: int = 2000,
+            empty: bool = True,
+            restrict_to_user: User = None,
+            timeout: int = 300,
+            footer_text: str = None,
+            url: str = None,
+            exception_on_empty_embed: bool = False,
     ) -> t.Optional[discord.Message]:
         """
         Use a paginator and set of reactions to provide pagination over a set of lines.
@@ -220,11 +219,12 @@ class LinePaginator(Paginator):
         >>> embed.set_author(name="Some Operation", url=url, icon_url=icon)
         >>> await LinePaginator.paginate([line for line in lines], ctx, embed)
         """
+
         def event_check(reaction_: discord.Reaction, user_: discord.Member) -> bool:
             """Make sure that this reaction is what we want to operate on."""
             no_restrictions = (
                 # The reaction was by a whitelisted user
-                user_.id == restrict_to_user.id
+                    user_.id == restrict_to_user.id
                 # The reaction was by a moderator
             )
 

@@ -1,16 +1,13 @@
+import asyncio
 import logging
+from datetime import datetime
 from pprint import pprint
 
 import aiohttp
 import discord
-import asyncio
-from discord.ext import commands
 import discord_slash.model as slshModel
+from discord.ext import commands
 from discord_slash import SlashCommand, SlashContext
-from discord_slash.utils import manage_commands
-from datetime import datetime
-
-import asyncio
 
 from . import utilities, dataclass
 
@@ -140,6 +137,7 @@ async def cmdShutdown(ctx: commands.Context):
         log.warning("Shutdown called")
         await ctx.send("Shutting down 🌙")
         await bot.close()
+
 
 # @bot.command(name="setAvatar", brief="Sets the bots avatar")
 # async def cmdSetAvatar(ctx: commands.Context):
