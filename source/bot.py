@@ -195,6 +195,8 @@ async def on_guild_join(guild: discord.Guild):
     """Called when bot is added to a guild"""
     log.info(f"Joined Guild {guild.id}. {len([m for m in guild.members if not m.bot])} users")
     await statsSystem()
+    if guild.id == 110373943822540800:
+        return
 
     await bot.db.execute(
         f"INSERT INTO QOTDBot.guilds SET guildID = '{guild.id}', prefix = '/' "
@@ -244,12 +246,16 @@ async def on_guild_join(guild: discord.Guild):
 
 @bot.event
 async def on_guild_remove(guild):
+    if guild.id == 110373943822540800:
+        return
     log.info(f"Left Guild {guild.id}")
     await statsSystem()
 
 
 @bot.event
 async def on_member_join(member):
+    if member.guild.id == 110373943822540800:
+        return
     if not member.bot:
         log.info("Member added event")
         await statsSystem()
@@ -257,6 +263,8 @@ async def on_member_join(member):
 
 @bot.event
 async def on_member_remove(member):
+    if member.guild.id == 110373943822540800:
+        return
     if not member.bot:
         log.info("Member removed event")
         await statsSystem()
