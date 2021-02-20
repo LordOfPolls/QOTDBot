@@ -45,6 +45,10 @@ class Config(commands.Cog):
         msg = await ctx.send(embed=_emb)
         result = await utilities.waitForChannelMention(ctx, msg)
         if result:
+            if not await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), result):
+                await ctx.send("Sorry, I am missing permissions in that channel.\n"
+                               "I need send messages, add reactions, manage messages, and embed links")
+                return False
             await self.bot.db.execute(
                 f"UPDATE QOTDBot.guilds SET qotdChannel='{result.id}' "
                 f"WHERE guildID = '{ctx.guild.id}'")
@@ -288,6 +292,9 @@ class Config(commands.Cog):
             if await utilities.checkGuildIsSetup(ctx):
                 _emb = utilities.defaultEmbed(title="Set QOTD Channel")
                 if isinstance(channel, discord.TextChannel):
+                    if not await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), channel):
+                        return await ctx.send("Sorry, I am missing permissions in that channel.\n"
+                                       "I need send messages, add reactions, manage messages, and embed links")
                     await self.bot.db.execute(
                         f"UPDATE QOTDBot.guilds SET qotdChannel='{channel.id}' "
                         f"WHERE guildID = '{ctx.guild.id}'")

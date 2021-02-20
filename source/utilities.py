@@ -255,6 +255,15 @@ async def waitForMessageFromAuthor(ctx: commands.Context) -> (None or discord.Me
     return output
 
 
+async def checkPermsInChannel(member: discord.Member, channel: discord.TextChannel) -> bool:
+    """Checks if the passed member has the following perms
+    send messages, add reactions, manage messages, and embed links"""
+    perms = member.permissions_in(channel)
+    if perms.send_messages and perms.add_reactions and perms.manage_messages and perms.embed_links:
+        return True
+    return False
+
+
 def convertTime(inputTimezone: str, hour: int) -> datetime:
     """
     Converts an input time from timezone to a local time
