@@ -31,20 +31,30 @@ class QOTD(commands.Cog):
         self.scheduler = AsyncIOScheduler()  # the task scheduler
 
         asyncio.run_coroutine_threadsafe(self._setup(), loop=bot.loop)
+        self.lastPresence = discord.Game(name="startup")
         self.statusMessageTask.start()
 
     @tasks.loop(seconds=30)
     async def statusMessageTask(self):
-        total = await self.bot.db.execute(
-            "SELECT COUNT(*) FROM QOTDBot.questions ", getOne=True
-        )
-        activities = [
-            f"with {total['COUNT(*)']} questions",
-            f"questions in {len(self.bot.guilds)} guilds",
-            f"{self.bot.db.operations} operations completed"
-        ]
-        activity = discord.Game(random.choice(activities))
-        await self.bot.change_presence(status=discord.Status.online, activity=activity)
+        try:
+            total = await self.bot.db.execute(
+                "SELECT COUNT(*) FROM QOTDBot.questions ", getOne=True
+            )
+            activities = [
+                discord.Streaming(name=f"{total['COUNT(*)']} questions to you", url="https://www.twitch.tv/dnabrokeit"),
+                discord.Activity(type=discord.ActivityType.watching, name="chat"),
+                discord.Activity(type=discord.ActivityType.listening, name=f"{self.bot.db.operations} events"),
+                discord.Activity(type=discord.ActivityType.watching, name="r/askreddit"),
+                discord.Game(name=f"in {len(self.bot.guilds)} servers"),
+                discord.Activity(type=discord.ActivityType.watching, name="the clock"),
+                discord.Activity(type=discord.ActivityType.watching, name=f"{len(self.scheduler.get_jobs())} queues")
+            ]
+            if self.lastPresence in activities:
+                activities.remove(self.lastPresence)
+            self.lastPresence = random.choice(activities)
+            await self.bot.change_presence(status=discord.Status.online, activity=self.lastPresence)
+        except Exception as e:
+            log.error(e)
 
     async def rescheduleTask(self, guildID):
         """Reschedules a task"""
