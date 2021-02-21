@@ -167,8 +167,8 @@ async def cmdSetName(ctx: commands.Context, name:str):
 async def on_slash_command(ctx: SlashContext):
     subcommand = ""
     try:
-        if ctx.subcommand:
-            subcommand = ctx.subcommand
+        if ctx.subcommand_name:
+            subcommand = ctx.subcommand_name
     except AttributeError:
         pass
     if ctx.guild:
