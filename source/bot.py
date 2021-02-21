@@ -176,13 +176,10 @@ async def on_slash_command(ctx: SlashContext):
     else:
         log.info(f"CMD - Direct Message::{ctx.author.id}: {ctx.command} {subcommand}")
 
-#
-# @bot.event
-# async def on_command_error(ctx, ex):
-#     if isinstance(ex, discord.ext.commands.CommandNotFound):
-#         return
-#     log.error(f"Error in {ctx.guild.id}: {ex}")
 
+@bot.event
+async def on_command_error(ctx, ex):
+    return
 
 # @bot.event
 # async def on_slash_command_error(ctx, ex):
