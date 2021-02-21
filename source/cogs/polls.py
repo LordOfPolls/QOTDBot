@@ -39,7 +39,8 @@ class Polls(commands.Cog):
                     progBarStr = u"░" * progBarLength
                 return progBarStr
 
-    @cog_ext.cog_slash(name="poll", description="Create a poll -- polls update every 3 seconds", guild_ids=[701347683591389185],
+    @cog_ext.cog_slash(name="poll", description="Create a poll -- polls update every 3 seconds",
+                       guild_ids=[701347683591389185],
                        options=[
                            manage_commands.create_option(
                                name="options",
@@ -85,18 +86,23 @@ class Polls(commands.Cog):
         for i in range(len(options)):
             options[i] = f"{emojiList[i]}- {options[i]}"
             embed.add_field(name=options[i], value="░░░░░░░░░░", inline=False)
-        if not channel:
-            msg = await ctx.send(embed=embed)
-        else:
-            if isinstance(channel, discord.TextChannel):
-                if not await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), channel):
-                    return await ctx.send("Sorry, I am missing permissions in that channel.\n"
-                                          "I need send messages, add reactions, manage messages, and embed links")
+
+        if channel and ctx.guild:
+            if ctx.author.guild_permissions.manage_guild:
+                if isinstance(channel, discord.TextChannel):
+                    if not await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), channel):
+                        return await ctx.send("Sorry, I am missing permissions in that channel.\n"
+                                              "I need send messages, add reactions, manage messages, and embed links")
+                    else:
+                        msg = await channel.send(embed=embed)
+                        await ctx.send("Sent :mailbox_with_mail:")
                 else:
-                    msg = await channel.send(embed=embed)
-                    await ctx.send("Sent :mailbox_with_mail:")
+                    return await ctx.send(f"{channel.name} is not a text channel")
             else:
-                return await ctx.send(f"{channel.name} is not a text channel")
+                await ctx.send("Sorry, to prevent abuse, only admins can set a destination channel")
+                msg = await ctx.send(embed=embed)
+        else:
+            msg = await ctx.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
 
         for i in range(len(options)):
             await msg.add_reaction(emojiList[i])
@@ -123,7 +129,7 @@ class Polls(commands.Cog):
                             embed.add_field(name=originalEmbed.fields[i].name,
                                             value=self.createBar(message, emoji), inline=False)
                         if embed != originalEmbed:
-                            return await message.edit(embed=embed)
+                            return await message.edit(embed=embed, allowed_mentions=discord.AllowedMentions.none())
                         else:
                             log.debug("No need to update")
 
@@ -152,10 +158,12 @@ class Polls(commands.Cog):
                 # add this message to a set to bulk update shortly
                 self.pollsToUpdate.add((payload.message_id, payload.channel_id))
 
+
 def setup(bot):
     """Called when this cog is mounted"""
     bot.add_cog(Polls(bot))
     log.info("Polls mounted")
+
 
 def teardown(bot):
     """Called when this cog is unmounted"""
