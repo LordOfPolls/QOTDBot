@@ -40,7 +40,6 @@ class Polls(commands.Cog):
                 return progBarStr
 
     @cog_ext.cog_slash(name="poll", description="Create a poll -- polls update every 3 seconds",
-                       guild_ids=[701347683591389185],
                        options=[
                            manage_commands.create_option(
                                name="options",
