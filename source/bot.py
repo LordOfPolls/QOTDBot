@@ -22,7 +22,8 @@ bot = dataclass.Bot(
     intents=intents,
     cogList=[
         "source.cogs.qotd",
-        "source.cogs.config"
+        "source.cogs.config",
+        "source.cogs.polls"
     ]
 )
 bot.remove_command("help")
@@ -170,24 +171,24 @@ async def on_slash_command(ctx: SlashContext):
     else:
         log.info(f"CMD - Direct Message::{ctx.author.id}: {ctx.command} {subcommand}")
 
+#
+# @bot.event
+# async def on_command_error(ctx, ex):
+#     if isinstance(ex, discord.ext.commands.CommandNotFound):
+#         return
+#     log.error(f"Error in {ctx.guild.id}: {ex}")
 
-@bot.event
-async def on_command_error(ctx, ex):
-    if isinstance(ex, discord.ext.commands.CommandNotFound):
-        return
-    log.error(f"Error in {ctx.guild.id}: {ex}")
 
-
-@bot.event
-async def on_slash_command_error(ctx, ex):
-    if isinstance(ex, discord.errors.Forbidden):
-        log.error(f"Missing permissions in {ctx.guild.name}")
-        await ctx.send(f"**Error:** I am missing permissions.\n"
-                       f"Please make sure i can access this channel, manage messages, embed links, and add reactions.")
-    else:
-        log.error(ex)
-        await ctx.send("An un-handled error has occurred, and has been logged, please try again later.\n"
-                       "If this continues please use ``/server`` and report it in my server")
+# @bot.event
+# async def on_slash_command_error(ctx, ex):
+#     if isinstance(ex, discord.errors.Forbidden):
+#         log.error(f"Missing permissions in {ctx.guild.name}")
+#         await ctx.send(f"**Error:** I am missing permissions.\n"
+#                        f"Please make sure i can access this channel, manage messages, embed links, and add reactions.")
+#     else:
+#         log.error(ex)
+#         await ctx.send("An un-handled error has occurred, and has been logged, please try again later.\n"
+#                        "If this continues please use ``/server`` and report it in my server")
 
 
 @bot.event
