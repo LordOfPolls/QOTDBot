@@ -140,6 +140,11 @@ async def cmdShutdown(ctx: commands.Context):
         await ctx.send("Shutting down 🌙")
         await bot.close()
 
+@bot.command(name="setname", brief="Renames the bot")
+async def cmdSetName(ctx: commands.Context, name:str):
+    if await bot.is_owner(ctx.author):
+        await bot.user.edit(username=name)
+
 
 # @bot.command(name="setAvatar", brief="Sets the bots avatar")
 # async def cmdSetAvatar(ctx: commands.Context):
