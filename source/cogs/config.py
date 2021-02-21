@@ -148,7 +148,7 @@ class Config(commands.Cog):
 
     # endregion options
 
-    @cog_ext.cog_subcommand(base="setup", name="active", description="Toggles if QOTDBot should be posting questions",
+    @cog_ext.cog_subcommand(base="setup", name="active", description="Toggles if I should be posting questions",
                             options=[
                                 utilities.createBooleanOption(name="state", description="Should questions be posted",
                                                               required=True)
