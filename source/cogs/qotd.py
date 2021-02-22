@@ -305,12 +305,15 @@ class QOTD(commands.Cog):
                 if questionID > question or questionID <= 0:
                     return await ctx.send("No question found with that ID")
 
-                questData = questions[questionID - 1]
+                try:
+                    questData = questions[questionID - 1]
+                except IndexError:
+                    return await ctx.send("No question found with that ID")
                 author = self.bot.get_user(id=int(questData['authorID']))
 
                 try:
                     if await self.checkSimilarity(ctx, questData['question'], ctx.guild.id, emb):
-                        question = self.bot.db.escape(questData['question'])
+                        question = await self.bot.db.escape(questData['question'])
                         await self.bot.db.execute(
                             f"DELETE FROM QOTDBot.suggestedQuestions WHERE suggestionID = {questData['suggestionID']}"
                         )
@@ -350,7 +353,10 @@ class QOTD(commands.Cog):
                 if questionID > question or questionID <= 0:
                     return await ctx.send("No question found with that ID")
 
-                questData = questions[questionID - 1]
+                try:
+                    questData = questions[questionID - 1]
+                except IndexError:
+                    return await ctx.send("No question found with that ID")
                 author = self.bot.get_user(id=int(questData['authorID']))
 
                 try:
