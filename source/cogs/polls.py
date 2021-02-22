@@ -28,6 +28,7 @@ class Polls(commands.Cog):
             if reaction.emoji == emoji:
                 progBarStr = ''
                 progBarLength = 10
+                percentage = 0
                 if totalReactions != 0:
                     percentage = (reaction.count - 1) / totalReactions
                     for i in range(progBarLength):
@@ -37,7 +38,7 @@ class Polls(commands.Cog):
                             progBarStr += u'▓'
                 else:
                     progBarStr = u"░" * progBarLength
-                return progBarStr
+                return progBarStr + f" {round(percentage*100)}%"
 
     @cog_ext.cog_slash(name="poll", description="Create a poll -- polls update every 3 seconds",
                        options=[
