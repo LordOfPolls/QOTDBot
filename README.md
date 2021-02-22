@@ -8,7 +8,7 @@ Query uses Discord's new ``slash commands`` to integrate into your server like n
 
 Query has no useless features, only questions. Commands include: ``'Question of the Day'``, ``polls``, and nothing else. Because you don’t need another multi-purpose bot that does everything passibly; you need a dedicated bot that does one thing great.
 
-![](https://i.imgur.com/Ltgpu4Q.png)
+![](https://i.imgur.com/OYJfFbj.png)
 
 There are ``no pay/votewalls`` stopping you from using the commands, just use the bot for questions, polls and have fun with it. No spam to be found! (Though upvotes are always appreciated).
 
