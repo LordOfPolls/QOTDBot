@@ -32,7 +32,7 @@ class Polls(commands.Cog):
                 if totalReactions != 0:
                     percentage = (reaction.count - 1) / totalReactions
                     for i in range(progBarLength):
-                        if percentage <= 1 / progBarLength * i:
+                        if round(percentage, 1) <= 1 / progBarLength * i:
                             progBarStr += u"░"
                         else:
                             progBarStr += u'▓'
