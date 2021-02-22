@@ -156,7 +156,8 @@ class Config(commands.Cog):
     async def slashActive(self, ctx, state: str = "False"):
         await ctx.respond()
         if await utilities.slashCheck(ctx):
-            if await utilities.checkGuildIsSetup(ctx):
+            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and\
+                    await utilities.checkGuildIsSetup(ctx):
                 state = True if state == "True" else False
                 if state:
                     await self.bot.db.execute(
@@ -174,31 +175,31 @@ class Config(commands.Cog):
     async def slashSetup(self, ctx: SlashContext):
         await ctx.respond()
         if await utilities.slashCheck(ctx):
+            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel):
+                _emb = utilities.defaultEmbed(title="Simple Setup")
+                step = 1
 
-            _emb = utilities.defaultEmbed(title="Simple Setup")
-            step = 1
+                if not await self.getQotdChannel(ctx, _emb.copy(), (step, 3)):
+                    return await ctx.send("Setup aborted")
+                step += 1
 
-            if not await self.getQotdChannel(ctx, _emb.copy(), (step, 3)):
-                return await ctx.send("Setup aborted")
-            step += 1
+                if not await self.getTimeZone(ctx, _emb.copy(), (step, 3)):
+                    return await ctx.send("Setup aborted")
+                step += 1
 
-            if not await self.getTimeZone(ctx, _emb.copy(), (step, 3)):
-                return await ctx.send("Setup aborted")
-            step += 1
+                if not await self.getTime(ctx, _emb.copy(), (step, 3)):
+                    return await ctx.send("Setup aborted")
+                step += 1
 
-            if not await self.getTime(ctx, _emb.copy(), (step, 3)):
-                return await ctx.send("Setup aborted")
-            step += 1
+                await self.bot.db.execute(
+                    f"UPDATE QOTDBot.guilds SET enabled=TRUE "
+                    f"WHERE guildID = '{ctx.guild.id}'")
 
-            await self.bot.db.execute(
-                f"UPDATE QOTDBot.guilds SET enabled=TRUE "
-                f"WHERE guildID = '{ctx.guild.id}'")
+                _emb.colour = discord.Colour.gold()
+                _emb.title = "🎉🥳🎉 **Setup Complete** 🎉🥳🎉"
+                await ctx.send(embed=_emb)
 
-            _emb.colour = discord.Colour.gold()
-            _emb.title = "🎉🥳🎉 **Setup Complete** 🎉🥳🎉"
-            await ctx.send(embed=_emb)
-
-            await self.submitToQOTD(ctx.guild)
+                await self.submitToQOTD(ctx.guild)
 
     @cog_ext.cog_subcommand(base="setup", name="Time", description="Sets the time for questions to be asked",
                             options=[
@@ -212,7 +213,8 @@ class Config(commands.Cog):
     async def slashSetTime(self, ctx: SlashContext, hour: int):
         await ctx.respond()
         if await utilities.slashCheck(ctx):
-            if await utilities.checkGuildIsSetup(ctx):
+            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and\
+                    await utilities.checkGuildIsSetup(ctx):
                 if hour == 24:
                     hour = 0
                 if hour > 24 or hour < 0:
@@ -238,7 +240,8 @@ class Config(commands.Cog):
     async def slashSetTimeZone(self, ctx: SlashContext, timezone: str):
         await ctx.respond()
         if await utilities.slashCheck(ctx):
-            if await utilities.checkGuildIsSetup(ctx):
+            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and\
+                    await utilities.checkGuildIsSetup(ctx):
                 # try and find a matching timezone
                 matches = {}
                 userInput = timezone.lower()
@@ -291,7 +294,8 @@ class Config(commands.Cog):
         """Sets the channel to ask questions"""
         await ctx.respond()
         if await utilities.slashCheck(ctx):
-            if await utilities.checkGuildIsSetup(ctx):
+            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and\
+                    await utilities.checkGuildIsSetup(ctx):
                 _emb = utilities.defaultEmbed(title="Set QOTD Channel")
                 if isinstance(channel, discord.TextChannel):
                     if not await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), channel):
@@ -308,6 +312,50 @@ class Config(commands.Cog):
                     _emb.colour = discord.Colour.orange()
                     _emb.description = "Sorry thats not a valid text channel :confused:"
                     await ctx.send(embed=_emb)
+
+    @cog_ext.cog_slash(name="role",
+                       description="Set a role to be mentioned when questions are posted",
+                       guild_ids=[701347683591389185], options=[
+            manage_commands.create_option(
+                name="role",
+                description="the role you want to be mentioned",
+                option_type=8,  # a role
+                required=False
+            ),
+            utilities.createBooleanOption("clear", "Stop mentioning roles on posting")
+        ])
+    async def slashSetMention(self, ctx, role: discord.Role or None = None, clear: str = None):
+        """Sets a role that will be mentioned when a question is posted """
+        await ctx.respond()
+        if await utilities.slashCheck(ctx):
+            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and\
+                    await utilities.checkGuildIsSetup(ctx):
+
+                if isinstance(role, str) and clear is None:
+                    clear = role
+                    role = None
+
+                if role is None and clear is None:
+                    return await ctx.send("Please choose an option that appears in the commands list")
+                clear = True if clear == "True" else False
+
+                if not clear:
+                    if isinstance(role, discord.Role):
+                        if role.mentionable:
+                            await self.bot.db.execute(
+                                f"UPDATE QOTDBot.guilds SET mentionRole = '{role.id}' WHERE guildID = '{ctx.guild.id}'"
+                            )
+                            return await ctx.send(f"Got it, i'll mention {role.mention} whenever a QOTD is posted",
+                                                  allowed_mentions=discord.AllowedMentions.none())
+                        else:
+                            return await ctx.send(f"{role.name} is not mentionable, please check your role settings")
+                    else:
+                        return ctx.send("You did not choose a role to mention")
+                else:
+                    await self.bot.db.execute(
+                        f"UPDATE QOTDBot.guilds SET mentionRole = NULL WHERE guildID = '{ctx.guild.id}'"
+                    )
+                    return await ctx.send("Got it, i wont mention anybody when i post")
 
 
 def setup(bot):

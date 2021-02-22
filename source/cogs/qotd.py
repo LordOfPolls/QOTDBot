@@ -379,6 +379,10 @@ class QOTD(commands.Cog):
             await qotdChannel.trigger_typing()
             question = None
             source = "Default Question"
+            guildConfig = await self.bot.db.execute(
+                f"SELECT * FROM QOTDBot.guilds WHERE guildID = '{guild.id}'",
+                getOne=True
+            )
             # get question from DB
             customQuestion = await self.bot.db.execute(
                 "SELECT * FROM QOTDBot.questions "
@@ -424,6 +428,15 @@ class QOTD(commands.Cog):
             emb.set_footer(icon_url=self.bot.user.avatar_url, text=f"{self.bot.user.name} • {source}")
             try:
                 await qotdChannel.send(embed=emb)
+
+                # if guild wants a role to be pinged, this ghost pings them
+                if guildConfig['mentionRole'] is not None:
+                    role: discord.Role = guild.get_role(int(guildConfig['mentionRole']))
+                    if role:
+                        msg = await qotdChannel.send(role.mention)
+                        await asyncio.sleep(1)
+                        await msg.delete()
+
             except Exception as e:
                 log.error(f"Unable to post question to {guild.id}: {e}")
             else:
