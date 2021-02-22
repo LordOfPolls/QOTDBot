@@ -481,6 +481,9 @@ class QOTD(commands.Cog):
             f"WHERE guildID = '{guildID}'",
             getOne=True
         )
+        if _guild['enabled'] == 0:
+            log.debug(f"{guildID} disabled qotd, not sending")
+            return
         guild = self.bot.get_guild(int(guildID))
         if guild:
             qotdChannel = _guild['qotdChannel']

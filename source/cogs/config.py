@@ -164,11 +164,13 @@ class Config(commands.Cog):
                         f"UPDATE QOTDBot.guilds SET enabled=TRUE "
                         f"WHERE guildID = '{ctx.guild.id}'")
                     await ctx.send("QOTD has been enabled")
+                    log.debug(f"{ctx.guild.id} enabled QOTD")
                 else:
                     await self.bot.db.execute(
                         f"UPDATE QOTDBot.guilds SET enabled=FALSE "
                         f"WHERE guildID = '{ctx.guild.id}'")
                     await ctx.send("QOTD has been disabled")
+                    log.debug(f"{ctx.guild.id} disabled QOTD")
 
     @cog_ext.cog_subcommand(base="setup", name="Simple", description="A simple setup to get the questions coming",
                             )
