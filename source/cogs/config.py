@@ -313,9 +313,8 @@ class Config(commands.Cog):
                     _emb.description = "Sorry thats not a valid text channel :confused:"
                     await ctx.send(embed=_emb)
 
-    @cog_ext.cog_slash(name="role",
-                       description="Set a role to be mentioned when questions are posted",
-                       guild_ids=[701347683591389185], options=[
+    @cog_ext.cog_subcommand(base="setup", name="role",
+                            description="Set a role to be mentioned when questions are posted", options=[
             manage_commands.create_option(
                 name="role",
                 description="the role you want to be mentioned",
@@ -357,10 +356,11 @@ class Config(commands.Cog):
                     )
                     return await ctx.send("Got it, i wont mention anybody when i post")
 
-    @cog_ext.cog_slash(name="pin", description="Should the qotd message be pinned in the channel",
-                       guild_ids=[701347683591389185], options=[
-            utilities.createBooleanOption(name="option", description="Should questions be pinned", required=True)
-        ])
+    @cog_ext.cog_subcommand(base="setup", name="pin", description="Should the qotd message be pinned in the channel",
+                            options=[
+                                utilities.createBooleanOption(name="option", description="Should questions be pinned",
+                                                              required=True)
+                            ])
     async def slashSetPin(self, ctx, option: str = "False"):
         await ctx.respond()
         if await utilities.slashCheck(ctx):
@@ -374,7 +374,6 @@ class Config(commands.Cog):
                 await self.bot.db.execute(
                     f"UPDATE QOTDBot.guilds SET pinMessage = {option} WHERE guildID = '{ctx.guild.id}'"
                 )
-
 
 
 def setup(bot):
