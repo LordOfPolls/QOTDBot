@@ -430,7 +430,6 @@ class QOTD(commands.Cog):
                 qotdMessage = await qotdChannel.send(embed=emb)
 
                 # if guild wants qotd pinning
-                print(guildConfig['pinMessage'])
                 if guildConfig['pinMessage'] == 1:
                     await qotdMessage.pin(reason="/setup pin is enabled")
 
