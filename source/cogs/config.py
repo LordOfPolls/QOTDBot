@@ -156,7 +156,7 @@ class Config(commands.Cog):
     async def slashActive(self, ctx, state: str = "False"):
         await ctx.respond()
         if await utilities.slashCheck(ctx):
-            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and\
+            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and \
                     await utilities.checkGuildIsSetup(ctx):
                 state = True if state == "True" else False
                 if state:
@@ -213,7 +213,7 @@ class Config(commands.Cog):
     async def slashSetTime(self, ctx: SlashContext, hour: int):
         await ctx.respond()
         if await utilities.slashCheck(ctx):
-            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and\
+            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and \
                     await utilities.checkGuildIsSetup(ctx):
                 if hour == 24:
                     hour = 0
@@ -240,7 +240,7 @@ class Config(commands.Cog):
     async def slashSetTimeZone(self, ctx: SlashContext, timezone: str):
         await ctx.respond()
         if await utilities.slashCheck(ctx):
-            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and\
+            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and \
                     await utilities.checkGuildIsSetup(ctx):
                 # try and find a matching timezone
                 matches = {}
@@ -294,7 +294,7 @@ class Config(commands.Cog):
         """Sets the channel to ask questions"""
         await ctx.respond()
         if await utilities.slashCheck(ctx):
-            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and\
+            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and \
                     await utilities.checkGuildIsSetup(ctx):
                 _emb = utilities.defaultEmbed(title="Set QOTD Channel")
                 if isinstance(channel, discord.TextChannel):
@@ -328,7 +328,7 @@ class Config(commands.Cog):
         """Sets a role that will be mentioned when a question is posted """
         await ctx.respond()
         if await utilities.slashCheck(ctx):
-            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and\
+            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and \
                     await utilities.checkGuildIsSetup(ctx):
 
                 if isinstance(role, str) and clear is None:
@@ -356,6 +356,25 @@ class Config(commands.Cog):
                         f"UPDATE QOTDBot.guilds SET mentionRole = NULL WHERE guildID = '{ctx.guild.id}'"
                     )
                     return await ctx.send("Got it, i wont mention anybody when i post")
+
+    @cog_ext.cog_slash(name="pin", description="Should the qotd message be pinned in the channel",
+                       guild_ids=[701347683591389185], options=[
+            utilities.createBooleanOption(name="option", description="Should questions be pinned", required=True)
+        ])
+    async def slashSetPin(self, ctx, option: str = "False"):
+        await ctx.respond()
+        if await utilities.slashCheck(ctx):
+            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and \
+                    await utilities.checkGuildIsSetup(ctx):
+                option = True if option == "True" else False
+                if option:
+                    await ctx.send("Okay, I'll pin questions from now on 📌")
+                else:
+                    await ctx.send("Okay, no pinning")
+                await self.bot.db.execute(
+                    f"UPDATE QOTDBot.guilds SET pinMessage = {option} WHERE guildID = '{ctx.guild.id}'"
+                )
+
 
 
 def setup(bot):

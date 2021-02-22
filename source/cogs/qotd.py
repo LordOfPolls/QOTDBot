@@ -427,7 +427,12 @@ class QOTD(commands.Cog):
             emb.title = question['questionText']
             emb.set_footer(icon_url=self.bot.user.avatar_url, text=f"{self.bot.user.name} • {source}")
             try:
-                await qotdChannel.send(embed=emb)
+                qotdMessage = await qotdChannel.send(embed=emb)
+
+                # if guild wants qotd pinning
+                print(guildConfig['pinMessage'])
+                if guildConfig['pinMessage'] == 1:
+                    await qotdMessage.pin(reason="/setup pin is enabled")
 
                 # if guild wants a role to be pinged, this ghost pings them
                 if guildConfig['mentionRole'] is not None:
