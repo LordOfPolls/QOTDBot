@@ -209,7 +209,7 @@ async def on_guild_join(guild: discord.Guild):
     message = "[intro]\n" \
               "To get started, simply type ``/setup simple`` in the server " \
               "(note you will need manage_server perms or higher)\n\n" \
-              "If you have any issues, join my server: https://discord.gg/V82f6HBujR"
+              "For updates, issues, and changes, join my server: https://discord.gg/V82f6HBujR"
     me = guild.get_member(user_id=bot.user.id)
     try:
         # try and find a place that we can send our greeting
