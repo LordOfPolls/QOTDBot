@@ -1,24 +1,19 @@
-# A Question of The Day bot with no bloat, just a lot of questions
-![](https://i.imgur.com/FhtzfuC.png)
+Query is primarily a 'Question of The Day' bot, with a huge repository of default questions for you to use. Server admins can add ``custom questions`` to be asked in their servers, and members can suggest questions to a ``Suggestion Queue``, for server admins to approve or reject in their own time.
 
-QOTDBot uses Discord's **slash commands** to integrate into your server, which makes the bot significantly easier to use. 
-![](https://i.imgur.com/p1rOQcv.png)
+![](https://i.imgur.com/N4Yyyxj.png)
 
-QOTDBot has no bloat, only commands for getting questions to you each day.  It also has a suggestion queue, so your members can suggest questions, and you can approve or reject them in your own time.
-Each server has their own private suggestion pool, and everyday, each server gets a randomly selected question at a time you set. It even respects time zones
+Query uses Discord's new ``slash commands`` to integrate into your server like never before, just type ``/`` and all the commands will appear, with auto-completion and options. 
 
-There are **no** features hidden behind a pay/vote wall, just use the bot and enjoy your questions 
-![](https://i.imgur.com/VHeJwW6.png)
+![](https://i.imgur.com/KcKZzbi.png)
 
-## How do I use this?
+Query has no useless features, only questions. Commands include: ``'Question of the Day'``, ``polls``, and nothing else. Because you don’t need another multi-purpose bot that does everything passibly; you need a dedicated bot that does one thing great.
 
-### Invite (recommended)
-Click this link and the bot will be invited to your server with all the required permissions: https://discord.com/oauth2/authorize?client_id=805445862771654667&permissions=24640&scope=applications.commands%20bot
+![](https://i.imgur.com/Ltgpu4Q.png)
 
-### Self host
+There are ``no pay/votewalls`` stopping you from using the commands, just use the bot for questions, polls and have fun with it. No spam to be found! (Though upvotes are always appreciated).
 
-I can't stop you from cloning this and hosting it yourself, hell i made it open source for a reason, however bare in mind that it requires a mysql database to store its data in. If you want to host it, feel free to make an issue and i'll walk you through what the DB needs
+![](https://i.imgur.com/4htOy4M.png)
 
-## Quickstart:
+### Quick-start
 
-Once you've added the bot, type ``/setup simple`` in your server (where the bot can see and type)
+Once you add Query, simply type ``/setup simple`` in your server and Query will walk you through the setup process. 
