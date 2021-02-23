@@ -13,7 +13,7 @@ from discord_slash import cog_ext, SlashContext
 from discord_slash.utils import manage_commands
 from fuzzywuzzy import fuzz
 
-from source import utilities, dataclass
+from source import utilities, dataclass, checks
 
 log = utilities.getLog("Cog::qotd")
 log.setLevel(logging.DEBUG)
@@ -155,6 +155,7 @@ class QOTD(commands.Cog):
                     return False
         return True
 
+    @commands.check(checks.checkAll)
     @cog_ext.cog_slash(name="add", description="Add a question to qotd",
                        options=[
                            manage_commands.create_option(
@@ -167,67 +168,64 @@ class QOTD(commands.Cog):
     async def cmdAddQuestion(self, ctx: SlashContext, *, question: str):
         """Checks if question is a duplicate, if not, adds to qotd pool"""
         await ctx.respond()
-        if await utilities.slashCheck(ctx):
-            if await utilities.checkGuildIsSetup(ctx):
-                mode = ctx.guild.id
-                embed = utilities.defaultEmbed(title="Adding Question")
-                embed.set_footer(icon_url=self.bot.user.avatar_url, text=f"{self.bot.user.name} • Custom Questions")
+        mode = ctx.guild.id
+        embed = utilities.defaultEmbed(title="Adding Question")
+        embed.set_footer(icon_url=self.bot.user.avatar_url, text=f"{self.bot.user.name} • Custom Questions")
 
-                if await self.checkSimilarity(ctx, question, mode, embed):
-                    question = await self.bot.db.escape(question)
-                    await self.bot.db.execute(
-                        f"INSERT INTO QOTDBot.questions (questionText, guildID) "
-                        f"VALUES ('{question}', '{mode}')"
-                    )
-                    embed.title = "Added Question"
-                    await ctx.send(embed=embed)
+        if await self.checkSimilarity(ctx, question, mode, embed):
+            question = await self.bot.db.escape(question)
+            await self.bot.db.execute(
+                f"INSERT INTO QOTDBot.questions (questionText, guildID) "
+                f"VALUES ('{question}', '{mode}')"
+            )
+            embed.title = "Added Question"
+            await ctx.send(embed=embed)
 
+    @commands.check(checks.checkAll)
     @cog_ext.cog_slash(name="send", description="Manually sends a qotd now, does not affect the schedule")
     async def cmdManualSend(self, ctx: SlashContext):
         await ctx.respond()
-        if await utilities.slashCheck(ctx):
-            if await utilities.checkGuildIsSetup(ctx):
-                info = await self.bot.db.execute(
-                    f"SELECT qotdChannel FROM QOTDBot.guilds WHERE guildID = '{ctx.guild.id}'",
-                    getOne=True
-                )
-                channel = self.bot.get_channel(int(info['qotdChannel']))
-                if not channel:
-                    return await ctx.send(
-                        "There was an error accessing your qotd channel, do i have permission to send in it?")
-                if await self.onPost(ctx.guild, channel):
-                    await ctx.send("Sent :mailbox_with_mail:")
-                else:
-                    await ctx.send("Failed to send in qotd channel. Check permissions")
+        info = await self.bot.db.execute(
+            f"SELECT qotdChannel FROM QOTDBot.guilds WHERE guildID = '{ctx.guild.id}'",
+            getOne=True
+        )
+        channel = self.bot.get_channel(int(info['qotdChannel']))
+        if not channel:
+            return await ctx.send(
+                "There was an error accessing your qotd channel, do i have permission to send in it?")
+        if await self.onPost(ctx.guild, channel):
+            await ctx.send("Sent :mailbox_with_mail:")
+        else:
+            await ctx.send("Failed to send in qotd channel. Check permissions")
 
+    @commands.check(checks.checkAll)
     @cog_ext.cog_slash(name="remaining", description="Check how many questions are remaining for your server")
     async def cmdQuestionsLeft(self, ctx: SlashContext):
         await ctx.respond()
-        if await utilities.slashCheck(ctx):
-            if await utilities.checkGuildIsSetup(ctx):
-                customQuestions = await self.bot.db.execute(
-                    f"""SELECT COUNT(*) FROM QOTDBot.questions
-    WHERE questions.guildID = '{ctx.guild.id}' AND questionID NOT IN (
-    SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID = '{ctx.guild.id}'
-    )""", getOne=True)
+        customQuestions = await self.bot.db.execute(
+            f"""SELECT COUNT(*) FROM QOTDBot.questions
+WHERE questions.guildID = '{ctx.guild.id}' AND questionID NOT IN (
+SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID = '{ctx.guild.id}'
+)""", getOne=True)
 
-                defaultQuestions = await self.bot.db.execute(
-                    f"""SELECT COUNT(*) FROM QOTDBot.questions
-    WHERE questions.guildID = '0' AND questionID NOT IN (
-    SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID = '{ctx.guild.id}'
-    )""", getOne=True)
+        defaultQuestions = await self.bot.db.execute(
+            f"""SELECT COUNT(*) FROM QOTDBot.questions
+WHERE questions.guildID = '0' AND questionID NOT IN (
+SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID = '{ctx.guild.id}'
+)""", getOne=True)
 
-                customQuestions = customQuestions['COUNT(*)']
-                defaultQuestions = defaultQuestions['COUNT(*)']
+        customQuestions = customQuestions['COUNT(*)']
+        defaultQuestions = defaultQuestions['COUNT(*)']
 
-                _emb = utilities.defaultEmbed(title="Remaining questions")
-                _emb.add_field(name="Default Questions:", value=defaultQuestions)
-                _emb.add_field(name="Custom Questions:", value=customQuestions)
+        _emb = utilities.defaultEmbed(title="Remaining questions")
+        _emb.add_field(name="Default Questions:", value=defaultQuestions)
+        _emb.add_field(name="Custom Questions:", value=customQuestions)
 
-                _emb.set_footer(text="These are questions that have not been asked in your server yet")
+        _emb.set_footer(text="These are questions that have not been asked in your server yet")
 
-                await ctx.send(embed=_emb)
+        await ctx.send(embed=_emb)
 
+    @commands.check(checks.checkUserAll)
     @cog_ext.cog_subcommand(base="suggestion", name="add", description="Suggest a question for your servers QOTD",
                             options=[
                                 manage_commands.create_option(
@@ -258,30 +256,30 @@ class QOTD(commands.Cog):
                 title=f"Your Question Has Been Submitted",
                 colour=discord.Colour.green()))
 
+    @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(base="suggestion", name="list", description="List all suggested questions")
     async def slashListSuggestions(self, ctx: SlashContext):
         await ctx.respond()
-        if await utilities.slashCheck(ctx):
-            if await utilities.checkGuildIsSetup(ctx):
-                data = await self.bot.db.execute(
-                    f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
-                emb = utilities.defaultEmbed(title="Suggested Questions")
+        data = await self.bot.db.execute(
+            f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
+        emb = utilities.defaultEmbed(title="Suggested Questions")
 
-                questions = []
-                question = 1
-                for questionData in data:
-                    author = self.bot.get_user(id=int(questionData['authorID']))
-                    authorName = author.name if author is not None else "Unknown"
-                    questions.append(f"``{question}.`` {questionData['question']}\n``Submitted by {authorName}``")
-                    question += 1
+        questions = []
+        question = 1
+        for questionData in data:
+            author = self.bot.get_user(id=int(questionData['authorID']))
+            authorName = author.name if author is not None else "Unknown"
+            questions.append(f"``{question}.`` {questionData['question']}\n``Submitted by {authorName}``")
+            question += 1
 
-                pageNum = 0
-                await utilities.paginator.LinePaginator.paginate(
-                    questions,
-                    ctx=ctx,
-                    embed=emb,
-                    max_lines=10, empty=False)
+        pageNum = 0
+        await utilities.paginator.LinePaginator.paginate(
+            questions,
+            ctx=ctx,
+            embed=emb,
+            max_lines=10, empty=False)
 
+    @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(base="suggestion", name="approve", description="Approve a suggested question",
                             options=[manage_commands.create_option(
                                 name="questionid",
@@ -291,45 +289,44 @@ class QOTD(commands.Cog):
                             )])
     async def slashApproveSuggestion(self, ctx: SlashContext, questionID: int):
         await ctx.respond()
-        if await utilities.slashCheck(ctx):
-            if await utilities.checkGuildIsSetup(ctx):
-                data = await self.bot.db.execute(
-                    f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
-                emb = utilities.defaultEmbed(title="Approved Question")
+        data = await self.bot.db.execute(
+            f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
+        emb = utilities.defaultEmbed(title="Approved Question")
 
-                questions = []
-                question = 1
-                for questionData in data:
-                    questions.append(questionData)
-                    question += 1
-                if questionID > question or questionID <= 0:
-                    return await ctx.send("No question found with that ID")
+        questions = []
+        question = 1
+        for questionData in data:
+            questions.append(questionData)
+            question += 1
+        if questionID > question or questionID <= 0:
+            return await ctx.send("No question found with that ID")
 
-                try:
-                    questData = questions[questionID - 1]
-                except IndexError:
-                    return await ctx.send("No question found with that ID")
-                author = self.bot.get_user(id=int(questData['authorID']))
+        try:
+            questData = questions[questionID - 1]
+        except IndexError:
+            return await ctx.send("No question found with that ID")
+        author = self.bot.get_user(id=int(questData['authorID']))
 
-                try:
-                    if await self.checkSimilarity(ctx, questData['question'], ctx.guild.id, emb):
-                        question = await self.bot.db.escape(questData['question'])
-                        await self.bot.db.execute(
-                            f"DELETE FROM QOTDBot.suggestedQuestions WHERE suggestionID = {questData['suggestionID']}"
-                        )
-                        await self.bot.db.execute(
-                            f"INSERT INTO QOTDBot.questions (questionText, guildID) "
-                            f"VALUES ('{question}', '{ctx.guild.id}')"
-                        )
-                except Exception as e:
-                    log.error(e)
-                    return await ctx.send("Failed to process question... Please try again later :cry:")
-                else:
-                    emb.description = questData['question']
-                    if author:
-                        emb.set_footer(text=f"Submitted by {author.name}", icon_url=author.avatar_url)
-                    await ctx.send(embed=emb)
+        try:
+            if await self.checkSimilarity(ctx, questData['question'], ctx.guild.id, emb):
+                question = await self.bot.db.escape(questData['question'])
+                await self.bot.db.execute(
+                    f"DELETE FROM QOTDBot.suggestedQuestions WHERE suggestionID = {questData['suggestionID']}"
+                )
+                await self.bot.db.execute(
+                    f"INSERT INTO QOTDBot.questions (questionText, guildID) "
+                    f"VALUES ('{question}', '{ctx.guild.id}')"
+                )
+        except Exception as e:
+            log.error(e)
+            return await ctx.send("Failed to process question... Please try again later :cry:")
+        else:
+            emb.description = questData['question']
+            if author:
+                emb.set_footer(text=f"Submitted by {author.name}", icon_url=author.avatar_url)
+            await ctx.send(embed=emb)
 
+    @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(base="suggestion", name="reject", description="Reject a suggested question",
                             options=[manage_commands.create_option(
                                 name="questionid",
@@ -339,38 +336,36 @@ class QOTD(commands.Cog):
                             )])
     async def slashDenySuggestion(self, ctx: SlashContext, questionID: int):
         await ctx.respond()
-        if await utilities.slashCheck(ctx):
-            if await utilities.checkGuildIsSetup(ctx):
-                data = await self.bot.db.execute(
-                    f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
-                emb = utilities.defaultEmbed(title="Rejected Question")
+        data = await self.bot.db.execute(
+            f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
+        emb = utilities.defaultEmbed(title="Rejected Question")
 
-                questions = []
-                question = 1
-                for questionData in data:
-                    questions.append(questionData)
-                    question += 1
-                if questionID > question or questionID <= 0:
-                    return await ctx.send("No question found with that ID")
+        questions = []
+        question = 1
+        for questionData in data:
+            questions.append(questionData)
+            question += 1
+        if questionID > question or questionID <= 0:
+            return await ctx.send("No question found with that ID")
 
-                try:
-                    questData = questions[questionID - 1]
-                except IndexError:
-                    return await ctx.send("No question found with that ID")
-                author = self.bot.get_user(id=int(questData['authorID']))
+        try:
+            questData = questions[questionID - 1]
+        except IndexError:
+            return await ctx.send("No question found with that ID")
+        author = self.bot.get_user(id=int(questData['authorID']))
 
-                try:
-                    await self.bot.db.execute(
-                        f"DELETE FROM QOTDBot.suggestedQuestions WHERE suggestionID = {questData['suggestionID']}"
-                    )
-                except Exception as e:
-                    log.error(e)
-                    return await ctx.send("Failed to process question... Please try again later :cry:")
-                else:
-                    emb.description = questData['question']
-                    if author:
-                        emb.set_footer(text=f"Submitted by {author.name}", icon_url=author.avatar_url)
-                    await ctx.send(embed=emb)
+        try:
+            await self.bot.db.execute(
+                f"DELETE FROM QOTDBot.suggestedQuestions WHERE suggestionID = {questData['suggestionID']}"
+            )
+        except Exception as e:
+            log.error(e)
+            return await ctx.send("Failed to process question... Please try again later :cry:")
+        else:
+            emb.description = questData['question']
+            if author:
+                emb.set_footer(text=f"Submitted by {author.name}", icon_url=author.avatar_url)
+            await ctx.send(embed=emb)
 
     async def onPost(self, guild: discord.Guild, qotdChannel: discord.TextChannel, rolesToMention=None,
                      customPriority: bool = False):
@@ -451,15 +446,6 @@ class QOTD(commands.Cog):
             log.error(f"Missing permissions to send qotd in {guild.id}: {guild.name}")
             return False
 
-    # @cog_ext.cog_subcommand(name="subtest", base="test", description="hmm")
-    # async def subtest(self, ctx: SlashContext):
-    #     await ctx.send("Yay, subtest!")
-    #
-    # @cog_ext.cog_slash(name="test2", description="test second")
-    # async def test2(self, ctx: SlashContext):
-    #     await ctx.respond(True)
-    #     await ctx.send("Test 2 passed!")
-
     async def sendTask(self, guildID):
         """The scheduled task for sending qotd"""
         me = self.scheduler.get_job(job_id=str(guildID))
@@ -483,30 +469,6 @@ class QOTD(commands.Cog):
             me.remove()
             return
         log.debug(f"Job for {guildID} has run, next run at {me.next_run_time}")
-
-    # @commands.command(name="import")
-    # @commands.has_permissions(manage_guild=True)
-    # async def cmdImport(self, ctx):
-    #     await ctx.send("Standby... importing Oracle Data...")
-    #     file = open("C:\\Users\\Daniel\\Documents\\Projects\\QOTDBot\\QOTD.json")
-    #     data = json.load(file)
-    #
-    #     questions = await self.bot.db.execute(
-    #         "SELECT * FROM QOTDBot.questions"
-    #     )
-    #
-    #     temp = 0
-    #     for item in data:
-    #         _q = item['question'].replace("|", ",")
-    #         for question in questions:
-    #             if _q == question['questionText']:
-    #                 print(f"{_q[:10]} == {question['questionText'][:10]}| {question['questionID']}")
-    #                 await self.bot.db.execute(
-    #                     f"INSERT INTO QOTDBot.questionLog (questionID, guildID, posted) VALUES "
-    #                     f"('{question['questionID']}', '563082182546030608', TRUE)"
-    #                 )
-    #                 temp += 1
-    #     await ctx.send(f"QOTD data imported, {temp} questions have already been asked here")
 
 
 def setup(bot):

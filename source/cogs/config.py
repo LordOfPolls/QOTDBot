@@ -1,10 +1,11 @@
 import re
 
 import discord
+import discord_slash
 from discord.ext import commands
 from discord_slash import cog_ext, SlashContext
 from discord_slash.utils import manage_commands
-from source import utilities, dataclass
+from source import utilities, dataclass, checks
 import pytz
 from fuzzywuzzy import fuzz
 from collections import Counter
@@ -148,6 +149,7 @@ class Config(commands.Cog):
 
     # endregion options
 
+    @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(base="setup", name="active", description="Toggles if I should be posting questions",
                             options=[
                                 utilities.createBooleanOption(name="state", description="Should questions be posted",
@@ -155,54 +157,51 @@ class Config(commands.Cog):
                             ])
     async def slashActive(self, ctx, state: str = "False"):
         await ctx.respond()
-        if await utilities.slashCheck(ctx):
-            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and \
-                    await utilities.checkGuildIsSetup(ctx):
-                state = True if state == "True" else False
-                if state:
-                    await self.bot.db.execute(
-                        f"UPDATE QOTDBot.guilds SET enabled=TRUE "
-                        f"WHERE guildID = '{ctx.guild.id}'")
-                    await ctx.send("QOTD has been enabled")
-                    log.debug(f"{ctx.guild.id} enabled QOTD")
-                else:
-                    await self.bot.db.execute(
-                        f"UPDATE QOTDBot.guilds SET enabled=FALSE "
-                        f"WHERE guildID = '{ctx.guild.id}'")
-                    await ctx.send("QOTD has been disabled")
-                    log.debug(f"{ctx.guild.id} disabled QOTD")
+        state = True if state == "True" else False
+        if state:
+            await self.bot.db.execute(
+                f"UPDATE QOTDBot.guilds SET enabled=TRUE "
+                f"WHERE guildID = '{ctx.guild.id}'")
+            await ctx.send("QOTD has been enabled")
+            log.debug(f"{ctx.guild.id} enabled QOTD")
+        else:
+            await self.bot.db.execute(
+                f"UPDATE QOTDBot.guilds SET enabled=FALSE "
+                f"WHERE guildID = '{ctx.guild.id}'")
+            await ctx.send("QOTD has been disabled")
+            log.debug(f"{ctx.guild.id} disabled QOTD")
 
+    @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(base="setup", name="Simple", description="A simple setup to get the questions coming",
                             )
     async def slashSetup(self, ctx: SlashContext):
         await ctx.respond()
-        if await utilities.slashCheck(ctx):
-            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel):
-                _emb = utilities.defaultEmbed(title="Simple Setup")
-                step = 1
+        _emb = utilities.defaultEmbed(title="Simple Setup")
+        step = 1
 
-                if not await self.getQotdChannel(ctx, _emb.copy(), (step, 3)):
-                    return await ctx.send("Setup aborted")
-                step += 1
+        if not await self.getQotdChannel(ctx, _emb.copy(), (step, 3)):
+            return await ctx.send("Setup aborted")
+        step += 1
 
-                if not await self.getTimeZone(ctx, _emb.copy(), (step, 3)):
-                    return await ctx.send("Setup aborted")
-                step += 1
+        if not await self.getTimeZone(ctx, _emb.copy(), (step, 3)):
+            return await ctx.send("Setup aborted")
+        step += 1
 
-                if not await self.getTime(ctx, _emb.copy(), (step, 3)):
-                    return await ctx.send("Setup aborted")
-                step += 1
+        if not await self.getTime(ctx, _emb.copy(), (step, 3)):
+            return await ctx.send("Setup aborted")
+        step += 1
 
-                await self.bot.db.execute(
-                    f"UPDATE QOTDBot.guilds SET enabled=TRUE "
-                    f"WHERE guildID = '{ctx.guild.id}'")
+        await self.bot.db.execute(
+            f"UPDATE QOTDBot.guilds SET enabled=TRUE "
+            f"WHERE guildID = '{ctx.guild.id}'")
 
-                _emb.colour = discord.Colour.gold()
-                _emb.title = "🎉🥳🎉 **Setup Complete** 🎉🥳🎉"
-                await ctx.send(embed=_emb)
+        _emb.colour = discord.Colour.gold()
+        _emb.title = "🎉🥳🎉 **Setup Complete** 🎉🥳🎉"
+        await ctx.send(embed=_emb)
 
-                await self.submitToQOTD(ctx.guild)
+        await self.submitToQOTD(ctx.guild)
 
+    @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(base="setup", name="Time", description="Sets the time for questions to be asked",
                             options=[
                                 manage_commands.create_option(
@@ -214,22 +213,20 @@ class Config(commands.Cog):
                             ])
     async def slashSetTime(self, ctx: SlashContext, hour: int):
         await ctx.respond()
-        if await utilities.slashCheck(ctx):
-            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and \
-                    await utilities.checkGuildIsSetup(ctx):
-                if hour == 24:
-                    hour = 0
-                if hour > 24 or hour < 0:
-                    return await ctx.send("Only hours 0-24 are accepted")
+        if hour == 24:
+            hour = 0
+        if hour > 24 or hour < 0:
+            return await ctx.send("Only hours 0-24 are accepted")
 
-                await self.bot.db.execute(
-                    f"UPDATE QOTDBot.guilds SET sendTime={hour} "
-                    f"WHERE guildID = '{ctx.guild.id}'")
-                _emb = utilities.defaultEmbed(title="Set Time", colour=discord.Colour.green())
-                _emb.description = f"Your questions will be sent at **{hour:02}:00**"
-                await ctx.send(embed=_emb)
-                await self.submitToQOTD(ctx.guild)
+        await self.bot.db.execute(
+            f"UPDATE QOTDBot.guilds SET sendTime={hour} "
+            f"WHERE guildID = '{ctx.guild.id}'")
+        _emb = utilities.defaultEmbed(title="Set Time", colour=discord.Colour.green())
+        _emb.description = f"Your questions will be sent at **{hour:02}:00**"
+        await ctx.send(embed=_emb)
+        await self.submitToQOTD(ctx.guild)
 
+    @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(base="setup", name="TimeZone", description="Sets the timezone for your server",
                             options=[
                                 manage_commands.create_option(
@@ -241,47 +238,45 @@ class Config(commands.Cog):
                             ])
     async def slashSetTimeZone(self, ctx: SlashContext, timezone: str):
         await ctx.respond()
-        if await utilities.slashCheck(ctx):
-            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and \
-                    await utilities.checkGuildIsSetup(ctx):
-                # try and find a matching timezone
-                matches = {}
-                userInput = timezone.lower()
-                userInput = " ".join(userInput.split("/"))
-                for tz in pytz.all_timezones:
-                    _tz = " ".join(tz.split("/")).lower()
-                    fuzzResult = fuzz.partial_ratio(userInput, _tz)
-                    matches[tz] = fuzzResult
+        # try and find a matching timezone
+        matches = {}
+        userInput = timezone.lower()
+        userInput = " ".join(userInput.split("/"))
+        for tz in pytz.all_timezones:
+            _tz = " ".join(tz.split("/")).lower()
+            fuzzResult = fuzz.partial_ratio(userInput, _tz)
+            matches[tz] = fuzzResult
 
-                mostSimilar = Counter(matches)
-                mostSimilar = mostSimilar.most_common(1)[0]
-                if mostSimilar[1] < 70:
-                    return await ctx.send(
-                        "Sorry, I couldn't recognise that timezone. Use [this website](https://kevinnovak.github.io/Time-Zone-Picker/) to get a timezone i'll understand :smile:")
+        mostSimilar = Counter(matches)
+        mostSimilar = mostSimilar.most_common(1)[0]
+        if mostSimilar[1] < 70:
+            return await ctx.send(
+                "Sorry, I couldn't recognise that timezone. Use [this website](https://kevinnovak.github.io/Time-Zone-Picker/) to get a timezone i'll understand :smile:")
 
-                # check with the user to see if this is correct
-                time = datetime.now(tz=pytz.timezone(mostSimilar[0]))
-                _emb = utilities.defaultEmbed(title="Set Timezone")
-                _emb.description = f"Setting your timezone to **{mostSimilar[0]}**\n" \
-                                   f"That would make it **{time.hour:02}:{time.minute:02}** for you?\n\n" \
-                                   f"React with 👍 if that's correct"
-                msg = await ctx.send(embed=_emb)
-                result = await utilities.YesOrNoReactionCheck(ctx, msg)
-                if result:
-                    # if it is correct, upload to db, and return
-                    await self.bot.db.execute(
-                        f"UPDATE QOTDBot.guilds SET timeZone='{mostSimilar[0]}' "
-                        f"WHERE guildID = '{ctx.guild.id}'")
-                    _emb.colour = discord.Colour.green()
-                    _emb.description = f"Your timezone has been set to **{mostSimilar[0]}**"
-                    await msg.edit(embed=_emb)
-                    await self.submitToQOTD(ctx.guild)
-                    return True
-                else:
-                    _emb.colour = discord.Colour.orange()
-                    _emb.description = "Oh okay, if you want to try again, type the command again"
-                    await ctx.send(embed=_emb)
+        # check with the user to see if this is correct
+        time = datetime.now(tz=pytz.timezone(mostSimilar[0]))
+        _emb = utilities.defaultEmbed(title="Set Timezone")
+        _emb.description = f"Setting your timezone to **{mostSimilar[0]}**\n" \
+                           f"That would make it **{time.hour:02}:{time.minute:02}** for you?\n\n" \
+                           f"React with 👍 if that's correct"
+        msg = await ctx.send(embed=_emb)
+        result = await utilities.YesOrNoReactionCheck(ctx, msg)
+        if result:
+            # if it is correct, upload to db, and return
+            await self.bot.db.execute(
+                f"UPDATE QOTDBot.guilds SET timeZone='{mostSimilar[0]}' "
+                f"WHERE guildID = '{ctx.guild.id}'")
+            _emb.colour = discord.Colour.green()
+            _emb.description = f"Your timezone has been set to **{mostSimilar[0]}**"
+            await msg.edit(embed=_emb)
+            await self.submitToQOTD(ctx.guild)
+            return True
+        else:
+            _emb.colour = discord.Colour.orange()
+            _emb.description = "Oh okay, if you want to try again, type the command again"
+            await ctx.send(embed=_emb)
 
+    @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(base="setup", name="Channel", description="Sets the channel to ask questions",
                             options=[
                                 manage_commands.create_option(
@@ -295,69 +290,65 @@ class Config(commands.Cog):
                               channel: discord.TextChannel or discord.CategoryChannel or discord.VoiceChannel):
         """Sets the channel to ask questions"""
         await ctx.respond()
-        if await utilities.slashCheck(ctx):
-            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and \
-                    await utilities.checkGuildIsSetup(ctx):
-                _emb = utilities.defaultEmbed(title="Set QOTD Channel")
-                if isinstance(channel, discord.TextChannel):
-                    if not await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), channel):
-                        return await ctx.send("Sorry, I am missing permissions in that channel.\n"
-                                              "I need send messages, add reactions, manage messages, and embed links")
-                    await self.bot.db.execute(
-                        f"UPDATE QOTDBot.guilds SET qotdChannel='{channel.id}' "
-                        f"WHERE guildID = '{ctx.guild.id}'")
-                    _emb.colour = discord.Colour.green()
-                    _emb.description = f"Set QOTD Channel to {channel.mention}"
-                    await ctx.send(embed=_emb)
-                    return True
-                else:
-                    _emb.colour = discord.Colour.orange()
-                    _emb.description = "Sorry thats not a valid text channel :confused:"
-                    await ctx.send(embed=_emb)
+        _emb = utilities.defaultEmbed(title="Set QOTD Channel")
+        if isinstance(channel, discord.TextChannel):
+            if not await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), channel):
+                return await ctx.send("Sorry, I am missing permissions in that channel.\n"
+                                      "I need send messages, add reactions, manage messages, and embed links")
+            await self.bot.db.execute(
+                f"UPDATE QOTDBot.guilds SET qotdChannel='{channel.id}' "
+                f"WHERE guildID = '{ctx.guild.id}'")
+            _emb.colour = discord.Colour.green()
+            _emb.description = f"Set QOTD Channel to {channel.mention}"
+            await ctx.send(embed=_emb)
+            return True
+        else:
+            _emb.colour = discord.Colour.orange()
+            _emb.description = "Sorry thats not a valid text channel :confused:"
+            await ctx.send(embed=_emb)
 
+    @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(base="setup", name="role",
-                            description="Set a role to be mentioned when questions are posted", options=[
-            manage_commands.create_option(
-                name="role",
-                description="the role you want to be mentioned",
-                option_type=8,  # a role
-                required=False
-            ),
-            utilities.createBooleanOption("clear", "Stop mentioning roles on posting")
-        ])
+                            description="Set a role to be mentioned when questions are posted",
+                            options=[
+                                manage_commands.create_option(
+                                    name="role",
+                                    description="the role you want to be mentioned",
+                                    option_type=discord_slash.model.SlashCommandOptionType.ROLE,
+                                    required=False
+                                ),
+                                utilities.createBooleanOption("clear", "Stop mentioning roles on posting")
+                            ])
     async def slashSetMention(self, ctx, role: discord.Role or None = None, clear: str = None):
         """Sets a role that will be mentioned when a question is posted """
         await ctx.respond()
-        if await utilities.slashCheck(ctx):
-            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and \
-                    await utilities.checkGuildIsSetup(ctx):
+        if isinstance(role, str) and clear is None:
+            clear = role
+            role = None
 
-                if isinstance(role, str) and clear is None:
-                    clear = role
-                    role = None
+        if role is None and clear is None:
+            return await ctx.send("Please choose an option that appears in the commands list")
+        clear = True if clear == "True" else False
 
-                if role is None and clear is None:
-                    return await ctx.send("Please choose an option that appears in the commands list")
-                clear = True if clear == "True" else False
-
-                if not clear:
-                    if isinstance(role, discord.Role):
-                        if role.mentionable:
-                            await self.bot.db.execute(
-                                f"UPDATE QOTDBot.guilds SET mentionRole = '{role.id}' WHERE guildID = '{ctx.guild.id}'"
-                            )
-                            return await ctx.send(f"Got it, i'll mention {role.mention} whenever a QOTD is posted",
-                                                  allowed_mentions=discord.AllowedMentions.none())
-                        else:
-                            return await ctx.send(f"{role.name} is not mentionable, please check your role settings")
-                    else:
-                        return ctx.send("You did not choose a role to mention")
-                else:
+        if not clear:
+            if isinstance(role, discord.Role):
+                if role.mentionable:
                     await self.bot.db.execute(
-                        f"UPDATE QOTDBot.guilds SET mentionRole = NULL WHERE guildID = '{ctx.guild.id}'"
+                        f"UPDATE QOTDBot.guilds SET mentionRole = '{role.id}' WHERE guildID = '{ctx.guild.id}'"
                     )
-                    return await ctx.send("Got it, i wont mention anybody when i post")
+                    return await ctx.send(f"Got it, i'll mention {role.mention} whenever a QOTD is posted",
+                                          allowed_mentions=discord.AllowedMentions.none())
+                else:
+                    return await ctx.send(f"{role.name} is not mentionable, please check your role settings")
+            else:
+                return ctx.send("You did not choose a role to mention")
+        else:
+            await self.bot.db.execute(
+                f"UPDATE QOTDBot.guilds SET mentionRole = NULL WHERE guildID = '{ctx.guild.id}'"
+            )
+            return await ctx.send("Got it, i wont mention anybody when i post")
 
+    @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(base="setup", name="pin", description="Should the qotd message be pinned in the channel",
                             options=[
                                 utilities.createBooleanOption(name="option", description="Should questions be pinned",
@@ -365,17 +356,14 @@ class Config(commands.Cog):
                             ])
     async def slashSetPin(self, ctx, option: str = "False"):
         await ctx.respond()
-        if await utilities.slashCheck(ctx):
-            if await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), ctx.channel) and \
-                    await utilities.checkGuildIsSetup(ctx):
-                option = True if option == "True" else False
-                if option:
-                    await ctx.send("Okay, I'll pin questions from now on 📌")
-                else:
-                    await ctx.send("Okay, no pinning")
-                await self.bot.db.execute(
-                    f"UPDATE QOTDBot.guilds SET pinMessage = {option} WHERE guildID = '{ctx.guild.id}'"
-                )
+        option = True if option == "True" else False
+        if option:
+            await ctx.send("Okay, I'll pin questions from now on 📌")
+        else:
+            await ctx.send("Okay, no pinning")
+        await self.bot.db.execute(
+            f"UPDATE QOTDBot.guilds SET pinMessage = {option} WHERE guildID = '{ctx.guild.id}'"
+        )
 
 
 def setup(bot):

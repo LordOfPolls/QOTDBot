@@ -2,7 +2,7 @@ from pprint import pprint
 
 import discord
 from discord.ext import commands, tasks
-from source import utilities
+from source import utilities, checks
 import string
 from discord_slash import cog_ext, SlashContext
 from discord_slash.utils import manage_commands
@@ -40,6 +40,7 @@ class Polls(commands.Cog):
                     progBarStr = u"░" * progBarLength
                 return progBarStr + f" {round(percentage*100)}%"
 
+    @commands.check(checks.botHasPerms)
     @cog_ext.cog_slash(name="poll", description="Create a poll -- polls update every 3 seconds",
                        options=[
                            manage_commands.create_option(

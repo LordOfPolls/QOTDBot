@@ -29,18 +29,6 @@ thread_pool = ThreadPoolExecutor(max_workers=2)  # a thread pool
 discordCharLimit = 2000
 
 
-class colours:
-    good = 0x00A300
-    warning = 0xF1C232
-    neutral = 0x00CCCC
-    bad = 0xA30000
-
-
-def defaultEmbed(colour=discord.Colour.blurple(), title=None):
-    embed = discord.Embed(colour=colour, title=title)
-    return embed
-
-
 def getLog(filename, level=logging.DEBUG) -> logging:
     """ Sets up logging, to be imported by other files """
     streamHandler = colorlog.StreamHandler()
@@ -73,6 +61,21 @@ def getLog(filename, level=logging.DEBUG) -> logging:
     log.addHandler(fileHandler)
     log.setLevel(logging.DEBUG)
     return log
+
+
+log = getLog("utils")
+
+
+class colours:
+    good = 0x00A300
+    warning = 0xF1C232
+    neutral = 0x00CCCC
+    bad = 0xA30000
+
+
+def defaultEmbed(colour=discord.Colour.blurple(), title=None):
+    embed = discord.Embed(colour=colour, title=title)
+    return embed
 
 
 def getToken():
@@ -144,37 +147,6 @@ async def getDominantColour(bot, imageURL):
                 colour = (colour[0] << 16) + (colour[1] << 8) + colour[2]
                 return colour
     return None
-
-
-async def checkGuildIsSetup(ctx):
-    """Makes sure all the basic information is set"""
-    guildData = await ctx.bot.db.execute(
-        f"SELECT * FROM QOTDBot.guilds WHERE guildID = '{ctx.guild.id}'",
-        getOne=True
-    )
-    embed = defaultEmbed(title="Config Error", colour=discord.Colour.orange())
-    embed.description = "You have not run the initial setup yet\n" \
-                        "Someone with manage-server perms or higher needs to run \"/setup simple\" to set up your server"
-    if guildData['qotdChannel'] is None:
-        await ctx.send(embed=embed)
-        return False
-    if guildData['timeZone'] is None:
-        await ctx.send(embed=embed)
-        return False
-    if guildData['sendTime'] is None:
-        await ctx.send(embed=embed)
-        return False
-    return True
-
-
-async def slashCheck(ctx):
-    if ctx.guild:
-        if ctx.author.guild_permissions.manage_guild:
-            return True
-        await ctx.send("Sorry you cant use this command. You need manage_server or higher")
-    else:
-        await ctx.send("Sorry, you can't use that here")
-    return False
 
 
 def createBooleanOption(name, description="Yes or no", required=False) -> dict:

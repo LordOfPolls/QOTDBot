@@ -7,9 +7,10 @@ import aiohttp
 import discord
 import discord_slash.model as slshModel
 from discord.ext import commands
-from discord_slash import SlashCommand, SlashContext
+import discord_slash
+from discord_slash import SlashCommand, SlashContext, error
 
-from . import utilities, dataclass
+from . import utilities, dataclass, checks
 
 log = utilities.getLog("Bot")
 intents = discord.Intents.default()
@@ -90,6 +91,7 @@ async def statsSystem():
             log.error(f"Failed to update discordbots stats: {resp.status}: {resp.reason}")
 
 
+@commands.check(checks.botHasPerms)
 @slash.slash(name="help", description="A helpful message")
 async def helpCMD(ctx):
     await ctx.respond()
@@ -114,12 +116,14 @@ async def helpCMD(ctx):
     await ctx.send(embed=embed)
 
 
+@commands.check(checks.botHasPerms)
 @slash.slash(name="ping", description="ping me")
 async def ping(ctx):
     await ctx.respond()
     await ctx.send(f"Pong: {bot.latency * 1000:.2f}ms")
 
 
+@commands.check(checks.botHasPerms)
 @slash.slash(name="invite", description="Get an invite link for the bot")
 async def cmdInvite(ctx):
     await ctx.respond()
@@ -127,10 +131,25 @@ async def cmdInvite(ctx):
                    f"&permissions={perms}&scope=applications.commands%20bot")
 
 
+@commands.check(checks.botHasPerms)
 @slash.slash(name="server", description="Get an invite to the bots server")
 async def cmdServer(ctx):
     await ctx.respond()
     await ctx.send("https://discord.gg/V82f6HBujR")
+
+
+@commands.check(checks.botHasPerms)
+@slash.slash(name="test", description="just a test", guild_ids=[701347683591389185])
+async def _test(ctx: SlashContext):
+    await ctx.respond(eat=True)
+
+    test = await ctx.send("this is your personal test!", hidden=True)
+
+    await asyncio.sleep(5)
+
+    await test.edit(content="haha nop")
+
+    await test.delete(delay=5)
 
 
 @bot.command(name="Shutdown", brief="Shuts down the bot")
@@ -140,27 +159,35 @@ async def cmdShutdown(ctx: commands.Context):
         await ctx.send("Shutting down 🌙")
         await bot.close()
 
+
 @bot.command(name="setname", brief="Renames the bot")
-async def cmdSetName(ctx: commands.Context, name:str):
+async def cmdSetName(ctx: commands.Context, name: str):
     if await bot.is_owner(ctx.author):
         await bot.user.edit(username=name)
 
 
-# @bot.command(name="setAvatar", brief="Sets the bots avatar")
-# async def cmdSetAvatar(ctx: commands.Context):
-#     if ctx.message.attachments:
-#         photo = ctx.message.attachments[0].url
-#         async with aiohttp.ClientSession() as session:
-#             async with session.get(photo) as r:
-#                 if r.status == 200:
-#                     data = await r.read()
-#                     try:
-#                         await bot.user.edit(avatar=data)
-#                         return await ctx.send("Set avatar, how do i look?")
-#                     except discord.HTTPException:
-#                         await ctx.send("Unable to set avatar")
-#                         return
-#     await ctx.send("I cant read that")
+@bot.command(name="setAvatar", brief="Sets the bots avatar")
+async def cmdSetAvatar(ctx: commands.Context):
+    if await bot.is_owner(ctx.author):
+        if ctx.message.attachments:
+            photo = ctx.message.attachments[0].url
+            async with aiohttp.ClientSession() as session:
+                async with session.get(photo) as r:
+                    if r.status == 200:
+                        data = await r.read()
+                        try:
+                            await bot.user.edit(avatar=data)
+                            return await ctx.send("Set avatar, how do i look?")
+                        except discord.HTTPException:
+                            await ctx.send("Unable to set avatar")
+                            return
+        await ctx.send("I cant read that")
+
+
+@bot.command(name="status", brief="Status of the bot")
+async def cmdStatus(ctx: commands.Context):
+    if await bot.is_owner(ctx.author):
+        pass
 
 
 @bot.event
@@ -181,16 +208,19 @@ async def on_slash_command(ctx: SlashContext):
 async def on_command_error(ctx, ex):
     return
 
-# @bot.event
-# async def on_slash_command_error(ctx, ex):
-#     if isinstance(ex, discord.errors.Forbidden):
-#         log.error(f"Missing permissions in {ctx.guild.name}")
-#         await ctx.send(f"**Error:** I am missing permissions.\n"
-#                        f"Please make sure i can access this channel, manage messages, embed links, and add reactions.")
-#     else:
-#         log.error(ex)
-#         await ctx.send("An un-handled error has occurred, and has been logged, please try again later.\n"
-#                        "If this continues please use ``/server`` and report it in my server")
+
+@bot.event
+async def on_slash_command_error(ctx, ex):
+    if isinstance(ex, discord.errors.Forbidden):
+        log.error(f"Missing permissions in {ctx.guild.name}")
+        await ctx.send(f"**Error:** I am missing permissions.\n"
+                       f"Please make sure i can access this channel, manage messages, embed links, and add reactions.")
+    elif isinstance(ex, discord_slash.error.CheckFailure):
+        log.debug(f"Ignoring command: check failure")
+    else:
+        log.error(ex)
+        await ctx.send("An un-handled error has occurred, and has been logged, please try again later.\n"
+                       "If this continues please use ``/server`` and report it in my server")
 
 
 @bot.event
