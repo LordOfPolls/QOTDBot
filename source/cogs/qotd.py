@@ -409,25 +409,12 @@ class QOTD(commands.Cog):
                 question = defaultQuestion
             else:
                 return log.error("No questions left!")
-            # if defaultQuestion and customQuestion:
-            #     # if both custom and default question, randomly choose one with a weight to custom questions
-            #     temp = npRand.choice([customQuestion, defaultQuestion], 1, [70, 30])
-            #     if customQuestion == temp:
-            # #         source = "Custom Question"
-            # #     question = temp[0]
-            # elif defaultQuestion:  # if only default questions
-            #     question = defaultQuestion
-            # elif customQuestion:  # if only custom questions
-            #     source = "Custom Question"
-            #     question = customQuestion
-            # else:
-            #     return log.error("No questions left!")
 
             emb = discord.Embed(colour=discord.Colour.blurple())
             emb.title = question['questionText']
             emb.set_footer(icon_url=self.bot.user.avatar_url, text=f"{self.bot.user.name} • {source}")
             try:
-                qotdMessage = await qotdChannel.send(embed=emb)
+                qotdMessage = await qotdChannel.send(embed=emb, allowed_mentions=discord.AllowedMentions.users())
 
                 # if guild wants qotd pinning
                 if guildConfig['pinMessage'] == 1:
