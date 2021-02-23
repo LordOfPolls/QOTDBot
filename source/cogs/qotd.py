@@ -414,7 +414,7 @@ class QOTD(commands.Cog):
             emb.title = question['questionText']
             emb.set_footer(icon_url=self.bot.user.avatar_url, text=f"{self.bot.user.name} • {source}")
             try:
-                qotdMessage = await qotdChannel.send(embed=emb, allowed_mentions=discord.AllowedMentions.users())
+                qotdMessage = await qotdChannel.send(embed=emb)
 
                 # if guild wants qotd pinning
                 if guildConfig['pinMessage'] == 1:
