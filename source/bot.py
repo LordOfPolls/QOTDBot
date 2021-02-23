@@ -138,20 +138,6 @@ async def cmdServer(ctx):
     await ctx.send("https://discord.gg/V82f6HBujR")
 
 
-@commands.check(checks.botHasPerms)
-@slash.slash(name="test", description="just a test", guild_ids=[701347683591389185])
-async def _test(ctx: SlashContext):
-    await ctx.respond(eat=True)
-
-    test = await ctx.send("this is your personal test!", hidden=True)
-
-    await asyncio.sleep(5)
-
-    await test.edit(content="haha nop")
-
-    await test.delete(delay=5)
-
-
 @bot.command(name="Shutdown", brief="Shuts down the bot")
 async def cmdShutdown(ctx: commands.Context):
     if await bot.is_owner(ctx.author):
