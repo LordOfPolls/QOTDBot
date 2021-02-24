@@ -1,6 +1,7 @@
 from pprint import pprint
 
 import discord
+import discord_slash.error
 from discord.ext import commands, tasks
 from source import utilities, checks
 import string
@@ -66,6 +67,8 @@ class Polls(commands.Cog):
     async def poll(self, ctx: SlashContext, options: str, title: str = None, channel=None,
                    singlevote: str = "False"):
         """Create a poll in the current channel"""
+        if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         await ctx.respond()
         singleVote = True if singlevote == "True" else False
 

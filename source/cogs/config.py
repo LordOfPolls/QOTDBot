@@ -1,15 +1,17 @@
 import re
+from collections import Counter
+from datetime import datetime
 
 import discord
 import discord_slash
+import discord_slash.error
+import pytz
 from discord.ext import commands
 from discord_slash import cog_ext, SlashContext
 from discord_slash.utils import manage_commands
-from source import utilities, dataclass, checks
-import pytz
 from fuzzywuzzy import fuzz
-from collections import Counter
-from datetime import datetime
+
+from source import utilities, dataclass, checks
 
 log = utilities.getLog("Cog::config")
 
@@ -156,6 +158,8 @@ class Config(commands.Cog):
                                                               required=True)
                             ])
     async def slashActive(self, ctx, state: str = "False"):
+        if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         await ctx.respond()
         state = True if state == "True" else False
         if state:
@@ -175,6 +179,8 @@ class Config(commands.Cog):
     @cog_ext.cog_subcommand(base="setup", name="Simple", description="A simple setup to get the questions coming",
                             )
     async def slashSetup(self, ctx: SlashContext):
+        if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         await ctx.respond()
         _emb = utilities.defaultEmbed(title="Simple Setup")
         step = 1
@@ -212,6 +218,8 @@ class Config(commands.Cog):
                                 )
                             ])
     async def slashSetTime(self, ctx: SlashContext, hour: int):
+        if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         await ctx.respond()
         if hour == 24:
             hour = 0
@@ -237,6 +245,8 @@ class Config(commands.Cog):
                                 )
                             ])
     async def slashSetTimeZone(self, ctx: SlashContext, timezone: str):
+        if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         await ctx.respond()
         # try and find a matching timezone
         matches = {}
@@ -289,6 +299,8 @@ class Config(commands.Cog):
     async def slashSetChannel(self, ctx: SlashContext,
                               channel: discord.TextChannel or discord.CategoryChannel or discord.VoiceChannel):
         """Sets the channel to ask questions"""
+        if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         await ctx.respond()
         _emb = utilities.defaultEmbed(title="Set QOTD Channel")
         if isinstance(channel, discord.TextChannel):
@@ -321,6 +333,8 @@ class Config(commands.Cog):
                             ])
     async def slashSetMention(self, ctx, role: discord.Role or None = None, clear: str = None):
         """Sets a role that will be mentioned when a question is posted """
+        if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         await ctx.respond()
         if isinstance(role, str) and clear is None:
             clear = role
@@ -355,6 +369,8 @@ class Config(commands.Cog):
                                                               required=True)
                             ])
     async def slashSetPin(self, ctx, option: str = "False"):
+        if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         await ctx.respond()
         option = True if option == "True" else False
         if option:

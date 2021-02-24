@@ -94,6 +94,8 @@ async def statsSystem():
 @commands.check(checks.botHasPerms)
 @slash.slash(name="help", description="A helpful message")
 async def helpCMD(ctx):
+    if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
+        raise discord_slash.error.CheckFailure
     await ctx.respond()
 
     commands = slash.commands
@@ -119,6 +121,8 @@ async def helpCMD(ctx):
 @commands.check(checks.botHasPerms)
 @slash.slash(name="privacy", description="A privacy statement about the bot")
 async def privacy(ctx):
+    if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
+        raise discord_slash.error.CheckFailure
     await ctx.respond()
     data = open("data/privacy.md", "r").read()
     data = data.replace("[@TheBot]", bot.user.mention)
@@ -128,6 +132,8 @@ async def privacy(ctx):
 @commands.check(checks.botHasPerms)
 @slash.slash(name="ping", description="ping me")
 async def ping(ctx):
+    if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
+        raise discord_slash.error.CheckFailure
     await ctx.respond()
     await ctx.send(f"Pong: {bot.latency * 1000:.2f}ms")
 
@@ -135,6 +141,8 @@ async def ping(ctx):
 @commands.check(checks.botHasPerms)
 @slash.slash(name="invite", description="Get an invite link for the bot")
 async def cmdInvite(ctx):
+    if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
+        raise discord_slash.error.CheckFailure
     await ctx.respond()
     await ctx.send(f"https://discord.com/oauth2/authorize?client_id={bot.user.id}"
                    f"&permissions={perms}&scope=applications.commands%20bot")
@@ -143,6 +151,9 @@ async def cmdInvite(ctx):
 @commands.check(checks.botHasPerms)
 @slash.slash(name="server", description="Get an invite to the bots server")
 async def cmdServer(ctx):
+    if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
+        raise discord_slash.error.CheckFailure
+
     await ctx.respond()
     await ctx.send("https://discord.gg/V82f6HBujR")
 

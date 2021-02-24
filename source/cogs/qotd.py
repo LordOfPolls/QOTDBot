@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import random
+import discord_slash.error
 from collections import Counter
 from datetime import datetime
 
@@ -167,6 +168,8 @@ class QOTD(commands.Cog):
                        ])
     async def cmdAddQuestion(self, ctx: SlashContext, *, question: str):
         """Checks if question is a duplicate, if not, adds to qotd pool"""
+        if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         await ctx.respond()
         mode = ctx.guild.id
         embed = utilities.defaultEmbed(title="Adding Question")
@@ -184,6 +187,8 @@ class QOTD(commands.Cog):
     @commands.check(checks.checkAll)
     @cog_ext.cog_slash(name="send", description="Manually sends a qotd now, does not affect the schedule")
     async def cmdManualSend(self, ctx: SlashContext):
+        if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         await ctx.respond()
         info = await self.bot.db.execute(
             f"SELECT qotdChannel FROM QOTDBot.guilds WHERE guildID = '{ctx.guild.id}'",
@@ -201,6 +206,8 @@ class QOTD(commands.Cog):
     @commands.check(checks.checkAll)
     @cog_ext.cog_slash(name="remaining", description="Check how many questions are remaining for your server")
     async def cmdQuestionsLeft(self, ctx: SlashContext):
+        if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         await ctx.respond()
         customQuestions = await self.bot.db.execute(
             f"""SELECT COUNT(*) FROM QOTDBot.questions
@@ -239,6 +246,8 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                             ])
     async def slashSuggest(self, ctx: SlashContext, question: str, HideQuestion: str = "False",
                            defaultQuestion: bool = False):
+        if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         HideQuestion = True if HideQuestion == "True" else False
         await ctx.respond(eat=HideQuestion)
         question = await self.bot.db.escape(question)
@@ -259,6 +268,8 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
     @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(base="suggestion", name="list", description="List all suggested questions")
     async def slashListSuggestions(self, ctx: SlashContext):
+        if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         await ctx.respond()
         data = await self.bot.db.execute(
             f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
@@ -288,6 +299,8 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                                 required=True
                             )])
     async def slashApproveSuggestion(self, ctx: SlashContext, questionID: int):
+        if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         await ctx.respond()
         data = await self.bot.db.execute(
             f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
@@ -317,6 +330,8 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                     f"INSERT INTO QOTDBot.questions (questionText, guildID) "
                     f"VALUES ('{question}', '{ctx.guild.id}')"
                 )
+            else:
+                return
         except Exception as e:
             log.error(e)
             return await ctx.send("Failed to process question... Please try again later :cry:")
@@ -335,6 +350,8 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                                 required=True
                             )])
     async def slashDenySuggestion(self, ctx: SlashContext, questionID: int):
+        if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
         await ctx.respond()
         data = await self.bot.db.execute(
             f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
