@@ -117,6 +117,15 @@ async def helpCMD(ctx):
 
 
 @commands.check(checks.botHasPerms)
+@slash.slash(name="privacy", description="A privacy statement about the bot")
+async def privacy(ctx):
+    await ctx.respond()
+    data = open("data/privacy.md", "r").read()
+    data = data.replace("[@TheBot]", bot.user.mention)
+    await ctx.send(data, hidden=not await bot.is_owner(ctx.author))
+
+
+@commands.check(checks.botHasPerms)
 @slash.slash(name="ping", description="ping me")
 async def ping(ctx):
     await ctx.respond()
