@@ -225,7 +225,10 @@ async def on_guild_join(guild: discord.Guild):
     message = "[intro]\n" \
               "To get started, simply type ``/setup simple`` in the server " \
               "(note you will need manage_server perms or higher)\n\n" \
+              "The bot **must** have the following permissions, or it will not function:\n" \
+              "Send Messages, Add Reactions, Manage Messages, and Embed Links\n\n" \
               "For updates, issues, and changes, join my server: https://discord.gg/V82f6HBujR"
+    embed.set_thumbnail(url=bot.user.avatar_url)
     me = guild.get_member(user_id=bot.user.id)
     try:
         # try and find a place that we can send our greeting
@@ -254,7 +257,8 @@ async def on_guild_join(guild: discord.Guild):
         embed.description = message.replace("[intro]",
                                             f"I am **{bot.user.name}**. I was just added to *{guild.name}*")
         embed.set_footer(
-            text="this message was sent here as this is set as your server does not have a system channel")
+            text="this message was sent here as your server does not have a system channel "
+                 "and a general channel could not be found")
         await guild.owner.send(embed=embed)
         return log.debug("Sent greeting in owner dm")
 
