@@ -19,6 +19,10 @@ class Bot(commands.Bot):
 
         self.startTime = None
         """The time the bot started"""
+
+        self.shouldUpdateBL = True
+        """Should the bot try and update bot-lists"""
+
         super().__init__(*args, **kwargs)
 
     async def getMessage(self, messageID: int, channel: discord.TextChannel) -> (discord.Message, None):

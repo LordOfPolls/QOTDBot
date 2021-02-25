@@ -38,10 +38,9 @@ def run():
     bot.run(utilities.getToken(), bot=True, reconnect=True)
 
 
-@bot.event
-async def on_ready():
-    """Called when the bot is ready"""
-    log.info(f"Logged in as: {bot.user.name} #{bot.user.id}")
+async def startupTasks():
+    """All the tasks the bot needs to run when it starts up"""
+    log.debug("Running startup tasks...")
     bot.appInfo = await bot.application_info()
     bot.startTime = datetime.now()
     await bot.change_presence(status=discord.Status.do_not_disturb, activity=discord.Game("Startup"))
@@ -68,7 +67,17 @@ async def on_ready():
     await statsSystem()
 
 
+@bot.event
+async def on_ready():
+    """Called when the bot is ready"""
+    log.info(f"Logged in as: {bot.user.name} #{bot.user.id}")
+    if not bot.startTime:
+        await startupTasks()
+
+
 async def statsSystem():
+    if not bot.shouldUpdateBL:
+        return False
     discordBots = f"https://discordbotlist.com/api/v1/bots/{bot.user.id}/stats"
 
     dbHeaders = {
@@ -86,9 +95,12 @@ async def statsSystem():
 
         resp = await session.post(discordBots, data=dBotPayload)
         if resp.status == 200:
-            log.info("Updated discordbots stats")
+            log.info("Updated DiscordBotList.com")
         else:
-            log.error(f"Failed to update discordbots stats: {resp.status}: {resp.reason}")
+            log.error(f"Failed to update DiscordBotList.com: {resp.status}: {resp.reason}")
+            if resp.status == 401:
+                log.warning("Disabling bot list updates for this session")
+                bot.shouldUpdateBL = False
 
 
 @commands.check(checks.botHasPerms)
