@@ -423,7 +423,11 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                 return log.error("No questions left!")
 
             emb = discord.Embed(colour=discord.Colour.blurple())
-            emb.title = question['questionText']
+            if len(question['questionText']) > 200:
+                emb.description = question['questionText']
+                emb.title = "Question of The Day"
+            else:
+                emb.title = question['questionText']
             emb.set_footer(icon_url=self.bot.user.avatar_url, text=f"{self.bot.user.name} • {source}")
             try:
                 qotdMessage = await qotdChannel.send(embed=emb)
