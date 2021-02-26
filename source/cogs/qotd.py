@@ -475,9 +475,17 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
             f"WHERE guildID = '{guildID}'",
             getOne=True
         )
-        if _guild['enabled'] == 0:
-            log.debug(f"{guildID} disabled qotd, not sending")
-            return
+        try:
+            if _guild['enabled'] == 0:
+                log.debug(f"{guildID} disabled qotd, not sending")
+                return
+        except TypeError:
+            # for some reason this guild isnt in our DB? We should check if we're even still in the guild
+            guild = self.bot.get_guild(int(guildID))
+            if not guild:
+                # guild gone, delete this job
+                log.warning(f"Can no longer access {guildID}, cancelling job")
+                me.remove()
         guild = self.bot.get_guild(int(guildID))
         if guild:
             qotdChannel = _guild['qotdChannel']
