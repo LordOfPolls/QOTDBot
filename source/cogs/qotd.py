@@ -486,6 +486,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                 # guild gone, delete this job
                 log.warning(f"Can no longer access {guildID}, cancelling job")
                 me.remove()
+                return
         guild = self.bot.get_guild(int(guildID))
         if guild:
             qotdChannel = _guild['qotdChannel']
