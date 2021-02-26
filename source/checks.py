@@ -1,8 +1,7 @@
 import discord
-import asyncio
 from discord_slash import SlashContext
+
 from source import utilities
-import discord_slash
 
 log = utilities.getLog("checks")
 

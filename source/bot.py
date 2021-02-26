@@ -1,13 +1,12 @@
 import asyncio
 import logging
 from datetime import datetime
-from pprint import pprint
 
 import aiohttp
 import discord
+import discord_slash
 import discord_slash.model as slshModel
 from discord.ext import commands
-import discord_slash
 from discord_slash import SlashCommand, SlashContext, error
 
 from . import utilities, dataclass, checks

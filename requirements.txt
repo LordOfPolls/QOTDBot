@@ -8,3 +8,7 @@ numpy
 scipy
 apscheduler
 fuzzywuzzy[speedup]
+
+pytz
+aiohttp
+tzlocal

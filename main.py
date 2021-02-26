@@ -1,4 +1,3 @@
-import asyncio
 import os
 from datetime import datetime
 from time import sleep
@@ -6,6 +5,7 @@ from time import sleep
 from source import utilities, bot
 
 log = None
+
 
 def archiveLog() -> bool:
     """Archives the last bot log"""
@@ -55,6 +55,7 @@ def sanityChecks() -> bool:
 def main():
     log.info("ready")
     bot.run()
+
 
 if __name__ == '__main__':
     sanityChecks()
