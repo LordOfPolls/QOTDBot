@@ -125,7 +125,7 @@ async def helpCMD(ctx):
             embed.add_field(name=cmd.name, value=cmd.description, inline=False)
     embed.add_field(name="For assistance join my server:", value="https://discord.gg/V82f6HBujR", inline=False)
     embed.set_footer(
-        text="All of the commands are integrated into your servers slash commands, to access them type ``/``")
+        text="All of the commands are integrated into your servers slash commands, to access them type `/`")
     await ctx.send(embed=embed)
 
 
@@ -237,7 +237,7 @@ async def on_slash_command_error(ctx, ex):
     else:
         log.error(ex)
         await ctx.send("An un-handled error has occurred, and has been logged, please try again later.\n"
-                       "If this continues please use ``/server`` and report it in my server")
+                       "If this continues please use `/server` and report it in my server")
 
 
 @bot.event
@@ -254,7 +254,7 @@ async def on_guild_join(guild: discord.Guild):
     )
     embed = utilities.defaultEmbed(title="Hello!")
     message = "[intro]\n" \
-              "To get started, simply type ``/setup simple`` in the server " \
+              "To get started, simply type `/setup simple` in the server " \
               "(note you will need manage_server perms or higher)\n\n" \
               "The bot **must** have the following permissions, or it will not function:\n" \
               "Send Messages, Add Reactions, Manage Messages, and Embed Links\n\n" \

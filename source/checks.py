@@ -21,7 +21,7 @@ async def checkAll(ctx: SlashContext) -> bool:
         log.debug("Rejecting Command: User lacks perms")
         await ctx.respond(eat=True)
         await ctx.send("Sorry, you don't have the permissions required to use this.\n "
-                       "You need ``manage_server`` or higher", hidden=True)
+                       "You need `manage_server` or higher", hidden=True)
         return False
 
     if not await checkGuildIsSetup(ctx):
@@ -30,12 +30,13 @@ async def checkAll(ctx: SlashContext) -> bool:
             await ctx.respond()
             await ctx.send("This server has not run the initial setup yet\n"
                            "Someone with manage_server perms or higher needs to run"
-                           "``/setup simple`` to get started")
+                           "`/setup simple` to get started")
             return False
     return True
 
 
 async def checkUserAll(ctx) -> bool:
+    """Checks all non-admin checks, and gives user feedback"""
     botPerms = ctx.guild.get_member(ctx.bot.user.id).permissions_in(ctx.channel)
     if not botHasPerms(ctx):
         log.debug("Rejecting Command: Bot lacks perms")
@@ -49,7 +50,7 @@ async def checkUserAll(ctx) -> bool:
         await ctx.respond()
         await ctx.send("This server has not run the initial setup yet\n"
                        "Someone with manage_server perms or higher needs to run"
-                       "``/setup simple`` to get started")
+                       "`/setup simple` to get started")
         return False
     return True
 

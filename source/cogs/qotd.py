@@ -145,7 +145,7 @@ class QOTD(commands.Cog):
                     _emb.title = "Similar Questions Found:"
                 _emb.description = ""
                 for _q in mostSimilarList:
-                    _emb.description += f"- ``{_q}``\n"
+                    _emb.description += f"- `{_q}`\n"
                 _emb.description += "\nWould you like to add anyway?"
                 message = await ctx.send(embed=_emb)
                 accept = await utilities.YesOrNoReactionCheck(ctx, message)
@@ -280,7 +280,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
         for questionData in data:
             author = self.bot.get_user(id=int(questionData['authorID']))
             authorName = author.name if author is not None else "Unknown"
-            questions.append(f"``{question}.`` {questionData['question']}\n``Submitted by {authorName}``")
+            questions.append(f"`{question}.` {questionData['question']}\n`Submitted by {authorName}`")
             question += 1
 
         pageNum = 0
