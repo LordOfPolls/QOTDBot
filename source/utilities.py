@@ -32,7 +32,6 @@ discordCharLimit = 2000
 def getLog(filename, level=logging.DEBUG) -> logging:
     """ Sets up logging, to be imported by other files """
     streamHandler = colorlog.StreamHandler()
-    fileHandler = logging.FileHandler('data/logs/bot.log', encoding="utf-8")
     streamFormatter = ColoredFormatter(
         "{asctime} {log_color}|| {levelname:^8} || {name:^11s} || {reset}{message}",
         datefmt="%H:%M:%S",
@@ -47,20 +46,15 @@ def getLog(filename, level=logging.DEBUG) -> logging:
         secondary_log_colors={},
         style='{'
     )
-    fileFormatter = logging.Formatter("%(asctime)s %(name)-30s %(levelname)-8s %(message)s",
-                                      datefmt='%Y-%m-%d %H:%M:%S')
 
-    fileHandler.setLevel(logging.DEBUG)
     streamHandler.setLevel(level)
     streamHandler.setFormatter(streamFormatter)
-    fileHandler.setFormatter(fileFormatter)
 
-    log = colorlog.getLogger(filename)
+    _log = colorlog.getLogger(filename)
 
-    log.addHandler(streamHandler)
-    log.addHandler(fileHandler)
-    log.setLevel(logging.DEBUG)
-    return log
+    _log.addHandler(streamHandler)
+    _log.setLevel(logging.DEBUG)
+    return _log
 
 
 log = getLog("utils")
