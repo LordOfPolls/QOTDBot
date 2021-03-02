@@ -1,8 +1,7 @@
 import os
-from datetime import datetime
 from time import sleep
 
-from source import utilities, bot
+from source import utilities
 
 log = None
 
@@ -18,11 +17,22 @@ def sanityChecks() -> bool:
 
 
 def main():
-    log.info("ready")
+    from source import bot
+    log.info("Ready, calling bot.py")
     bot.run()
 
 
 if __name__ == '__main__':
+    print("""████████▄   ███    █▄     ▄████████    ▄████████ ▄██   ▄   
+███    ███  ███    ███   ███    ███   ███    ███ ███   ██▄ 
+███    ███  ███    ███   ███    █▀    ███    ███ ███▄▄▄███ 
+███    ███  ███    ███  ▄███▄▄▄      ▄███▄▄▄▄██▀ ▀▀▀▀▀▀███ 
+███    ███  ███    ███ ▀▀███▀▀▀     ▀▀███▀▀▀▀▀   ▄██   ███ 
+███    ███  ███    ███   ███    █▄  ▀███████████ ███   ███ 
+███  ▀ ███  ███    ███   ███    ███   ███    ███ ███   ███ 
+ ▀██████▀▄█ ████████▀    ██████████   ███    ███  ▀█████▀  
+                                      ███    ███           """)
+    sleep(1)
     sanityChecks()
     log = utilities.getLog("Main")
     log.info("Logging system started")
