@@ -5,7 +5,7 @@ from datetime import datetime
 import aiohttp
 import discord
 import discord_slash
-import discord_slash.model as slshModel
+import discord_slash.model as slashModel
 from discord.ext import commands
 from discord_slash import SlashCommand, SlashContext, error
 
@@ -17,16 +17,16 @@ intents.members = True
 
 bot = dataclass.Bot(
     command_prefix="/",
-    description="QOTD Bot",
+    description="Query",
     case_insensitive=True,
     intents=intents,
     cogList=[
         "source.cogs.qotd",
         "source.cogs.config",
         "source.cogs.polls"
-    ]
+    ],
+    help_command=None
 )
-bot.remove_command("help")
 slash = SlashCommand(bot, sync_on_cog_reload=True)  # register a slash command system
 slash.logger = utilities.getLog("slashAPI", logging.DEBUG)
 perms = "24640"
@@ -61,20 +61,30 @@ async def startupTasks():
     try:
         await slash.sync_all_commands()
     except discord.HTTPException:
+        log.warning("Hit rate-limit while syncing slash, waiting 30 seconds")
         await asyncio.sleep(30)
         await slash.sync_all_commands()
-    await statsSystem()
+    await statsUpdate()
 
 
 @bot.event
 async def on_ready():
     """Called when the bot is ready"""
-    log.info(f"Logged in as: {bot.user.name} #{bot.user.id}")
     if not bot.startTime:
         await startupTasks()
+    log.info("INFO".center(40, "-"))
+    log.info(f"Logged in as      : {bot.user.name} #{bot.user.discriminator}")
+    log.info(f"User ID           : {bot.user.id}")
+    log.info(f"Start Time        : {bot.startTime.ctime()}")
+    log.info(f"DB Connection Type: {'Tunneled' if bot.db.tunnel else 'Direct'}")
+    log.info(f"Server Count      : {len(bot.guilds)}")
+    log.info(f"Cog Count         : {len(bot.cogs)}")
+    log.info(f"Command Count     : {len(slash.commands)}")
+    log.info(f"Discord.py Version: {discord.__version__}")
+    log.info("END INFO".center(40, "-"))
 
 
-async def statsSystem():
+async def statsUpdate():
     if not bot.shouldUpdateBL:
         return False
     discordBots = f"https://discordbotlist.com/api/v1/bots/{bot.user.id}/stats"
@@ -94,7 +104,7 @@ async def statsSystem():
 
         resp = await session.post(discordBots, data=dBotPayload)
         if resp.status == 200:
-            log.info("Updated DiscordBotList.com")
+            log.debug("Updated DiscordBotList.com")
         else:
             log.error(f"Failed to update DiscordBotList.com: {resp.status}: {resp.reason}")
             if resp.status == 401:
@@ -109,18 +119,18 @@ async def helpCMD(ctx):
         raise discord_slash.error.CheckFailure
     await ctx.respond()
 
-    commands = slash.commands
+    _commands = slash.commands
     subcommands = slash.subcommands
     embed = utilities.defaultEmbed(title="")
     embed.set_author(name="Command List", icon_url=bot.user.avatar_url)
 
-    for key in commands:
-        cmd: slshModel.CommandObject = commands[key]
+    for key in _commands:
+        cmd: slashModel.CommandObject = _commands[key]
         if cmd.has_subcommands:
-            subcmds = subcommands[cmd.name]
-            for _cmdKey in subcmds:
-                subcmd: slshModel.SubcommandObject = subcmds[_cmdKey]
-                embed.add_field(name=f"{cmd.name} {subcmd.name}", value=subcmd.description, inline=True)
+            subCMDs = subcommands[cmd.name]
+            for _cmdKey in subCMDs:
+                subCMD: slashModel.SubcommandObject = subCMDs[_cmdKey]
+                embed.add_field(name=f"{cmd.name} {subCMD.name}", value=subCMD.description, inline=True)
         else:
             embed.add_field(name=cmd.name, value=cmd.description, inline=False)
     embed.add_field(name="For assistance join my server:", value="https://discord.gg/V82f6HBujR", inline=False)
@@ -204,7 +214,48 @@ async def cmdSetAvatar(ctx: commands.Context):
 @bot.command(name="status", brief="Status of the bot")
 async def cmdStatus(ctx: commands.Context):
     if await bot.is_owner(ctx.author):
-        pass
+        # grab DB data
+        setupGuilds = len(await bot.db.execute('SELECT * FROM QOTDBot.guilds WHERE timeZone IS NOT NULL'))
+        totalQuestions = await bot.db.execute(
+            "SELECT COUNT(*) FROM QOTDBot.questions ", getOne=True
+        )
+        totalLog = await bot.db.execute(
+            "SELECT COUNT(*) FROM QOTDBot.questionLog ", getOne=True
+        )
+
+        # get qotd cog's data
+        scheduledTasks = "Error, could not determine"
+        cog = bot.get_cog("QOTD")
+        if hasattr(cog, "scheduler"):
+            scheduledTasks = len(cog.scheduler.get_jobs())
+
+        # get uptime and human format it
+        uptime = datetime.now() - bot.startTime
+        s = uptime.total_seconds()
+        hours, remainder = divmod(s, 3600)
+        minutes, seconds = divmod(remainder, 60)
+
+        message = [
+            "```css",
+            f"Logged in as      : '{bot.user.name} #{bot.user.discriminator}'",
+            f"User ID           : '{bot.user.id}'",
+            f"Start Time        : '{bot.startTime.ctime()}'",
+            f"Uptime            : '{round(hours):02}:{round(minutes):02}:{round(seconds):02}'",
+            f"DB Connection Type: '{'Tunneled' if bot.db.tunnel else 'Direct'}'",
+            f"DB Operations     : '{bot.db.operations}'",
+            f"Stored Questions  : '{totalQuestions['COUNT(*)']}'",
+            f"Question Log Size : '{totalLog['COUNT(*)']}'",
+            f"Scheduled Tasks   : '{scheduledTasks}'",
+            f"Server Count      : '{len(bot.guilds)}'",
+            f"Setup Servers     : '{setupGuilds}'",
+            f"Cog Count         : '{len(bot.cogs)}'",
+            f"Command Count     : '{len(slash.commands)}'",
+            f"Discord.py Version: '{discord.__version__}'",
+            "```"
+        ]
+        message.insert(1, "BOT INFO".center(len(max(message, key=len)), "-"))
+        message.insert(len(message) - 1, "END BOT INFO".center(len(max(message, key=len)), "-"))
+        await ctx.send("\n".join(message))
 
 
 @bot.event
@@ -244,7 +295,7 @@ async def on_slash_command_error(ctx, ex):
 async def on_guild_join(guild: discord.Guild):
     """Called when bot is added to a guild"""
     log.info(f"Joined Guild {guild.id}. {len([m for m in guild.members if not m.bot])} users")
-    await statsSystem()
+    await statsUpdate()
     if guild.id == 110373943822540800:
         return
 
@@ -316,7 +367,7 @@ async def on_guild_remove(guild):
         log.debug(f"{guild.id}:: Data Purged")
     except Exception as e:
         log.critical(f"FAILED TO PURGE DATA FOR {guild.id}: {e}")
-    await statsSystem()
+    await statsUpdate()
 
 
 @bot.event
@@ -324,8 +375,8 @@ async def on_member_join(member):
     if member.guild.id == 110373943822540800:
         return
     if not member.bot:
-        log.info("Member added event")
-        await statsSystem()
+        log.debug("Member added event")
+        await statsUpdate()
 
 
 @bot.event
@@ -333,5 +384,5 @@ async def on_member_remove(member):
     if member.guild.id == 110373943822540800:
         return
     if not member.bot:
-        log.info("Member removed event")
-        await statsSystem()
+        log.debug("Member removed event")
+        await statsUpdate()
