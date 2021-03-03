@@ -1,0 +1,33 @@
+{
+  "decorator": {
+    "name": "role",
+    "description": "Set a role to be mentioned when questions are posted",
+    "options": [
+      {
+        "name": "role",
+        "description": "the role you want to be mentioned",
+        "type": 8,
+        "required": false,
+        "choices": []
+      },
+      {
+        "name": "clear",
+        "description": "Stop mentioning roles on posting",
+        "type": 3,
+        "required": false,
+        "choices": [
+          {
+            "value": "True",
+            "name": "Yes"
+          },
+          {
+            "value": "False",
+            "name": "No"
+          }
+        ]
+      }
+    ],
+    "guild_ids": null,
+    "base": "setup"
+  }
+}

@@ -11,7 +11,7 @@ from discord_slash import cog_ext, SlashContext
 from discord_slash.utils import manage_commands
 from fuzzywuzzy import fuzz
 
-from source import utilities, dataclass, checks
+from source import utilities, dataclass, checks, slashParser
 
 log = utilities.getLog("Cog::config")
 
@@ -152,11 +152,7 @@ class Config(commands.Cog):
     # endregion options
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(base="setup", name="active", description="Toggles if I should be posting questions",
-                            options=[
-                                utilities.createBooleanOption(name="state", description="Should questions be posted",
-                                                              required=True)
-                            ])
+    @cog_ext.cog_subcommand(**slashParser.getDecorator("setup.active"))
     async def slashActive(self, ctx, state: str = "False"):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -176,8 +172,7 @@ class Config(commands.Cog):
             log.debug(f"{ctx.guild.id} disabled QOTD")
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(base="setup", name="Simple", description="A simple setup to get the questions coming",
-                            )
+    @cog_ext.cog_subcommand(**slashParser.getDecorator("setup.simple"))
     async def slashSetup(self, ctx: SlashContext):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -208,15 +203,7 @@ class Config(commands.Cog):
         await self.submitToQOTD(ctx.guild)
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(base="setup", name="Time", description="Sets the time for questions to be asked",
-                            options=[
-                                manage_commands.create_option(
-                                    name="hour",
-                                    description="An hour, in the 24 hour clock",
-                                    option_type=int,
-                                    required=True,
-                                )
-                            ])
+    @cog_ext.cog_subcommand(**slashParser.getDecorator("setup.time"))
     async def slashSetTime(self, ctx: SlashContext, hour: int):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -235,15 +222,7 @@ class Config(commands.Cog):
         await self.submitToQOTD(ctx.guild)
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(base="setup", name="TimeZone", description="Sets the timezone for your server",
-                            options=[
-                                manage_commands.create_option(
-                                    name="timezone",
-                                    description="your timezone",
-                                    option_type=str,
-                                    required=True,
-                                )
-                            ])
+    @cog_ext.cog_subcommand(**slashParser.getDecorator("setup.timezone"))
     async def slashSetTimeZone(self, ctx: SlashContext, timezone: str):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -287,15 +266,7 @@ class Config(commands.Cog):
             await ctx.send(embed=_emb)
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(base="setup", name="Channel", description="Sets the channel to ask questions",
-                            options=[
-                                manage_commands.create_option(
-                                    name="channel",
-                                    description="The channel you want QOTD sent in",
-                                    option_type=7,
-                                    required=True
-                                )
-                            ])
+    @cog_ext.cog_subcommand(**slashParser.getDecorator("setup.channel"))
     async def slashSetChannel(self, ctx: SlashContext,
                               channel: discord.TextChannel or discord.CategoryChannel or discord.VoiceChannel):
         """Sets the channel to ask questions"""
@@ -320,17 +291,7 @@ class Config(commands.Cog):
             await ctx.send(embed=_emb)
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(base="setup", name="role",
-                            description="Set a role to be mentioned when questions are posted",
-                            options=[
-                                manage_commands.create_option(
-                                    name="role",
-                                    description="the role you want to be mentioned",
-                                    option_type=discord_slash.model.SlashCommandOptionType.ROLE,
-                                    required=False
-                                ),
-                                utilities.createBooleanOption("clear", "Stop mentioning roles on posting")
-                            ])
+    @cog_ext.cog_subcommand(**slashParser.getDecorator("setup.role"))
     async def slashSetMention(self, ctx, role: discord.Role or None = None, clear: str = None):
         """Sets a role that will be mentioned when a question is posted """
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
@@ -363,11 +324,7 @@ class Config(commands.Cog):
             return await ctx.send("Got it, i wont mention anybody when i post")
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(base="setup", name="pin", description="Should the qotd message be pinned in the channel",
-                            options=[
-                                utilities.createBooleanOption(name="option", description="Should questions be pinned",
-                                                              required=True)
-                            ])
+    @cog_ext.cog_subcommand(**slashParser.getDecorator("setup.pin"))
     async def slashSetPin(self, ctx, option: str = "False"):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure

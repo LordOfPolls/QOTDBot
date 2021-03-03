@@ -27,6 +27,8 @@ def getDecorator(name: str):
 def write(name: str, description: str, options: list = None, guild_ids: list = None, base=None):
     """Writes a basic command json file
     used in development"""
+    name = name.lower()
+    base = base.lower()
     data = {
         "decorator": {
             "name": name.lower(),

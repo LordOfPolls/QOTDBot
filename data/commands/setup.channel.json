@@ -1,0 +1,17 @@
+{
+  "decorator": {
+    "name": "channel",
+    "description": "Sets the channel to ask questions",
+    "options": [
+      {
+        "name": "channel",
+        "description": "The channel you want QOTD sent in",
+        "type": 7,
+        "required": true,
+        "choices": []
+      }
+    ],
+    "guild_ids": null,
+    "base": "setup"
+  }
+}

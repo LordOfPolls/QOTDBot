@@ -1,0 +1,26 @@
+{
+  "decorator": {
+    "name": "pin",
+    "description": "Should the qotd message be pinned in the channel",
+    "options": [
+      {
+        "name": "option",
+        "description": "Should questions be pinned",
+        "type": 3,
+        "required": true,
+        "choices": [
+          {
+            "value": "True",
+            "name": "Yes"
+          },
+          {
+            "value": "False",
+            "name": "No"
+          }
+        ]
+      }
+    ],
+    "guild_ids": null,
+    "base": "setup"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "decorator": {
+    "name": "simple",
+    "description": "A simple setup to get the questions coming",
+    "options": null,
+    "guild_ids": null,
+    "base": "setup"
+  }
+}

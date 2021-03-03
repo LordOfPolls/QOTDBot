@@ -1,0 +1,17 @@
+{
+  "decorator": {
+    "name": "time",
+    "description": "Sets the time for questions to be asked",
+    "options": [
+      {
+        "name": "hour",
+        "description": "An hour, in the 24 hour clock",
+        "type": 4,
+        "required": true,
+        "choices": []
+      }
+    ],
+    "guild_ids": null,
+    "base": "setup"
+  }
+}

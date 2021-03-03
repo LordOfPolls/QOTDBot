@@ -1,0 +1,17 @@
+{
+  "decorator": {
+    "name": "timezone",
+    "description": "Sets the timezone for your server",
+    "options": [
+      {
+        "name": "timezone",
+        "description": "your timezone",
+        "type": 3,
+        "required": true,
+        "choices": []
+      }
+    ],
+    "guild_ids": null,
+    "base": "setup"
+  }
+}
