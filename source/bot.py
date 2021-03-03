@@ -9,7 +9,7 @@ import discord_slash.model as slashModel
 from discord.ext import commands
 from discord_slash import SlashCommand, SlashContext, error
 
-from . import utilities, dataclass, checks
+from . import utilities, dataclass, checks, slashParser
 
 log = utilities.getLog("Bot")
 intents = discord.Intents.default()
@@ -27,7 +27,15 @@ bot = dataclass.Bot(
     ],
     help_command=None
 )
-slash = SlashCommand(bot, sync_on_cog_reload=True)  # register a slash command system
+slash = SlashCommand(bot, sync_commands=True)  # register a slash command system
+if bot.cogList:
+    log.info("Mounting cogs...")
+    for cog in bot.cogList:
+        log.info(f"Mounting {cog}...")
+        bot.load_extension(cog)
+else:
+    log.warning("No cogs to load!")
+
 slash.logger = utilities.getLog("slashAPI", logging.DEBUG)
 perms = "24640"
 
@@ -50,21 +58,12 @@ async def startupTasks():
     except Exception as e:
         log.error(e)
 
-    if bot.cogList:
-        log.info("Mounting cogs...")
-        for cog in bot.cogList:
-            log.info(f"Mounting {cog}...")
-            bot.load_extension(cog)
-    else:
-        log.warning("No cogs to load!")
-
-    try:
-        await slash.sync_all_commands()
-    except discord.HTTPException:
-        log.warning("Hit rate-limit while syncing slash, waiting 30 seconds")
-        await asyncio.sleep(30)
-        await slash.sync_all_commands()
-    await statsUpdate()
+    log.info("Running cog setup tasks")
+    for cog in bot.cogs:
+        _c = bot.get_cog(cog)
+        if hasattr(_c, "setup"):
+            await _c.setup()
+    asyncio.create_task(statsUpdate())
 
 
 @bot.event
@@ -73,15 +72,15 @@ async def on_ready():
     if not bot.startTime:
         await startupTasks()
     log.info("INFO".center(40, "-"))
-    log.info(f"Logged in as      : {bot.user.name} #{bot.user.discriminator}")
-    log.info(f"User ID           : {bot.user.id}")
-    log.info(f"Start Time        : {bot.startTime.ctime()}")
-    log.info(f"DB Connection Type: {'Tunneled' if bot.db.tunnel else 'Direct'}")
-    log.info(f"Server Count      : {len(bot.guilds)}")
-    log.info(f"Cog Count         : {len(bot.cogs)}")
-    log.info(f"Command Count     : {len(slash.commands)}")
-    log.info(f"Discord.py Version: {discord.__version__}")
-    log.info("END INFO".center(40, "-"))
+    log.info(f"Logged in as       : {bot.user.name} #{bot.user.discriminator}")
+    log.info(f"User ID            : {bot.user.id}")
+    log.info(f"Start Time         : {bot.startTime.ctime()}")
+    log.info(f"DB Connection Type : {'Tunneled' if bot.db.tunnel else 'Direct'}")
+    log.info(f"Server Count       : {len(bot.guilds)}")
+    log.info(f"Cog Count          : {len(bot.cogs)}")
+    log.info(f"Command Count      : {len(slash.commands)}")
+    log.info(f"Discord.py Version : {discord.__version__}")
+    log.info("END-INFO".center(40, "-"))
 
 
 async def statsUpdate():
@@ -113,7 +112,7 @@ async def statsUpdate():
 
 
 @commands.check(checks.botHasPerms)
-@slash.slash(name="help", description="A helpful message")
+@slash.slash(**slashParser.getDecorator("help"))
 async def helpCMD(ctx):
     if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
         raise discord_slash.error.CheckFailure
@@ -140,7 +139,7 @@ async def helpCMD(ctx):
 
 
 @commands.check(checks.botHasPerms)
-@slash.slash(name="privacy", description="A privacy statement about the bot")
+@slash.slash(**slashParser.getDecorator("privacy"))
 async def privacy(ctx):
     if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
         raise discord_slash.error.CheckFailure
@@ -151,7 +150,7 @@ async def privacy(ctx):
 
 
 @commands.check(checks.botHasPerms)
-@slash.slash(name="ping", description="ping me")
+@slash.slash(**slashParser.getDecorator("ping"))
 async def ping(ctx):
     if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
         raise discord_slash.error.CheckFailure
@@ -160,7 +159,7 @@ async def ping(ctx):
 
 
 @commands.check(checks.botHasPerms)
-@slash.slash(name="invite", description="Get an invite link for the bot")
+@slash.slash(**slashParser.getDecorator("invite"))
 async def cmdInvite(ctx):
     if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
         raise discord_slash.error.CheckFailure
@@ -170,7 +169,7 @@ async def cmdInvite(ctx):
 
 
 @commands.check(checks.botHasPerms)
-@slash.slash(name="server", description="Get an invite to the bots server")
+@slash.slash(**slashParser.getDecorator("server"))
 async def cmdServer(ctx):
     if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
         raise discord_slash.error.CheckFailure
@@ -231,26 +230,31 @@ async def cmdStatus(ctx: commands.Context):
 
         # get uptime and human format it
         uptime = datetime.now() - bot.startTime
-        s = uptime.total_seconds()
-        hours, remainder = divmod(s, 3600)
+        days, remainder = divmod(uptime.total_seconds(), 86400)
+        hours, remainder = divmod(remainder, 3600)
         minutes, seconds = divmod(remainder, 60)
+
+        if days != 0:
+            days = f"{days} day{'s' if days > 1 else ''}, "
+        else:
+            days = ""
 
         message = [
             "```css",
-            f"Logged in as      : '{bot.user.name} #{bot.user.discriminator}'",
-            f"User ID           : '{bot.user.id}'",
-            f"Start Time        : '{bot.startTime.ctime()}'",
-            f"Uptime            : '{round(hours):02}:{round(minutes):02}:{round(seconds):02}'",
-            f"DB Connection Type: '{'Tunneled' if bot.db.tunnel else 'Direct'}'",
-            f"DB Operations     : '{bot.db.operations}'",
-            f"Stored Questions  : '{totalQuestions['COUNT(*)']}'",
-            f"Question Log Size : '{totalLog['COUNT(*)']}'",
-            f"Scheduled Tasks   : '{scheduledTasks}'",
-            f"Server Count      : '{len(bot.guilds)}'",
-            f"Setup Servers     : '{setupGuilds}'",
-            f"Cog Count         : '{len(bot.cogs)}'",
-            f"Command Count     : '{len(slash.commands)}'",
-            f"Discord.py Version: '{discord.__version__}'",
+            f"Logged in as       : '{bot.user.name} #{bot.user.discriminator}'",
+            f"User ID            : '{bot.user.id}'",
+            f"Start Time         : '{bot.startTime.ctime()}'",
+            f"Uptime             : '{days}{round(hours):02}:{round(minutes):02}:{round(seconds):02}'",
+            f"DB Connection Type : '{'Tunneled' if bot.db.tunnel else 'Direct'}'",
+            f"DB Operations      : '{bot.db.operations}'",
+            f"Stored Questions   : '{totalQuestions['COUNT(*)']}'",
+            f"Question Log Size  : '{totalLog['COUNT(*)']}'",
+            f"Scheduled Tasks    : '{scheduledTasks}'",
+            f"Server Count       : '{len(bot.guilds)}'",
+            f"Setup Servers      : '{setupGuilds}'",
+            f"Cog Count          : '{len(bot.cogs)}'",
+            f"Command Count      : '{len(slash.commands)}'",
+            f"Discord.py Version : '{discord.__version__}'",
             "```"
         ]
         message.insert(1, "BOT INFO".center(len(max(message, key=len)), "-"))
@@ -294,6 +298,8 @@ async def on_slash_command_error(ctx, ex):
 @bot.event
 async def on_guild_join(guild: discord.Guild):
     """Called when bot is added to a guild"""
+    while not bot.is_ready():
+        await asyncio.sleep(5)
     log.info(f"Joined Guild {guild.id}. {len([m for m in guild.members if not m.bot])} users")
     await statsUpdate()
     if guild.id == 110373943822540800:
@@ -351,6 +357,8 @@ async def on_guild_join(guild: discord.Guild):
 
 @bot.event
 async def on_guild_remove(guild):
+    while not bot.is_ready():
+        await asyncio.sleep(5)
     if guild.id == 110373943822540800:
         return
     log.info(f"Left Guild {guild.id}| Purging data...")
@@ -367,7 +375,7 @@ async def on_guild_remove(guild):
         log.debug(f"{guild.id}:: Data Purged")
     except Exception as e:
         log.critical(f"FAILED TO PURGE DATA FOR {guild.id}: {e}")
-    await statsUpdate()
+    asyncio.create_task(statsUpdate())
 
 
 @bot.event
@@ -376,7 +384,7 @@ async def on_member_join(member):
         return
     if not member.bot:
         log.debug("Member added event")
-        await statsUpdate()
+        asyncio.create_task(statsUpdate())
 
 
 @bot.event
@@ -385,4 +393,4 @@ async def on_member_remove(member):
         return
     if not member.bot:
         log.debug("Member removed event")
-        await statsUpdate()
+        asyncio.create_task(statsUpdate())

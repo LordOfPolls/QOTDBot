@@ -14,7 +14,7 @@ from discord_slash import cog_ext, SlashContext
 from discord_slash.utils import manage_commands
 from fuzzywuzzy import fuzz
 
-from source import utilities, dataclass, checks
+from source import utilities, dataclass, checks, slashParser
 
 log = utilities.getLog("Cog::qotd")
 log.setLevel(logging.DEBUG)
@@ -31,9 +31,7 @@ class QOTD(commands.Cog):
         # chance it can fail if not checked second by second
         self.scheduler = AsyncIOScheduler()  # the task scheduler
 
-        asyncio.run_coroutine_threadsafe(self._setup(), loop=bot.loop)
         self.lastPresence = discord.Game(name="startup")
-        self.statusMessageTask.start()
 
     @tasks.loop(seconds=30)
     async def statusMessageTask(self):
@@ -79,7 +77,7 @@ class QOTD(commands.Cog):
         except Exception as e:
             log.error(f"Failed to reschedule job:{guildID}. Reason: {e}")
 
-    async def _setup(self):
+    async def setup(self):
         """Creates the jobs for sending qotd to servers"""
         try:
             guilds = await self.bot.db.execute(
@@ -117,6 +115,7 @@ class QOTD(commands.Cog):
             self.scheduler.start()
         except Exception as e:
             log.critical(f"Error while setting up QOTD job: {e}")
+        self.statusMessageTask.start()
 
     async def checkSimilarity(self, ctx, question, mode, embed):
         # prevent duplicate questions being added
@@ -157,15 +156,7 @@ class QOTD(commands.Cog):
         return True
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_slash(name="add", description="Add a question to qotd",
-                       options=[
-                           manage_commands.create_option(
-                               name="question",
-                               description="The question you want to add",
-                               option_type=str,
-                               required=True
-                           )
-                       ])
+    @cog_ext.cog_slash(**slashParser.getDecorator("add"))
     async def cmdAddQuestion(self, ctx: SlashContext, *, question: str):
         """Checks if question is a duplicate, if not, adds to qotd pool"""
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
@@ -185,7 +176,7 @@ class QOTD(commands.Cog):
             await ctx.send(embed=embed)
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_slash(name="send", description="Manually sends a qotd now, does not affect the schedule")
+    @cog_ext.cog_slash(**slashParser.getDecorator("send"))
     async def cmdManualSend(self, ctx: SlashContext):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -204,7 +195,7 @@ class QOTD(commands.Cog):
             await ctx.send("Failed to send in qotd channel. Check permissions")
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_slash(name="remaining", description="Check how many questions are remaining for your server")
+    @cog_ext.cog_slash(**slashParser.getDecorator("remaining"))
     async def cmdQuestionsLeft(self, ctx: SlashContext):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -233,17 +224,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
         await ctx.send(embed=_emb)
 
     @commands.check(checks.checkUserAll)
-    @cog_ext.cog_subcommand(base="suggestion", name="add", description="Suggest a question for your servers QOTD",
-                            options=[
-                                manage_commands.create_option(
-                                    name="question",
-                                    description="The question you want to ask",
-                                    option_type=str,
-                                    required=True
-                                ),
-                                utilities.createBooleanOption("hideQuestion",
-                                                              "Should the question be hidden in chat")
-                            ])
+    @cog_ext.cog_subcommand(**slashParser.getDecorator("suggestion.add"))
     async def slashSuggest(self, ctx: SlashContext, question: str, HideQuestion: str = "False",
                            defaultQuestion: bool = False):
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
@@ -266,7 +247,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                 colour=discord.Colour.green()))
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(base="suggestion", name="list", description="List all suggested questions")
+    @cog_ext.cog_subcommand(**slashParser.getDecorator("suggestion.list"))
     async def slashListSuggestions(self, ctx: SlashContext):
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -291,13 +272,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
             max_lines=10, empty=False)
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(base="suggestion", name="approve", description="Approve a suggested question",
-                            options=[manage_commands.create_option(
-                                name="questionid",
-                                description="The questions ID (use /suggestion list to get this)",
-                                option_type=int,
-                                required=True
-                            )])
+    @cog_ext.cog_subcommand(**slashParser.getDecorator("suggestion.approve"))
     async def slashApproveSuggestion(self, ctx: SlashContext, questionID: int):
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -342,13 +317,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
             await ctx.send(embed=emb)
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(base="suggestion", name="reject", description="Reject a suggested question",
-                            options=[manage_commands.create_option(
-                                name="questionid",
-                                description="The questions ID (use /suggestion list to get this)",
-                                option_type=int,
-                                required=True
-                            )])
+    @cog_ext.cog_subcommand(**slashParser.getDecorator("suggestion.reject"))
     async def slashDenySuggestion(self, ctx: SlashContext, questionID: int):
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure

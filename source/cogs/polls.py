@@ -3,7 +3,7 @@ from pprint import pprint
 import discord
 import discord_slash.error
 from discord.ext import commands, tasks
-from source import utilities, checks
+from source import utilities, checks, slashParser
 import string
 from discord_slash import cog_ext, SlashContext
 from discord_slash.utils import manage_commands
@@ -42,28 +42,7 @@ class Polls(commands.Cog):
                 return progBarStr + f" {round(percentage*100)}%"
 
     @commands.check(checks.botHasPerms)
-    @cog_ext.cog_slash(name="poll", description="Create a poll -- polls update every 3 seconds",
-                       options=[
-                           manage_commands.create_option(
-                               name="options",
-                               option_type=str,
-                               description="The options of your poll, separated by commas",
-                               required=True
-                           ),
-                           manage_commands.create_option(
-                               name="title",
-                               option_type=str,
-                               description="Optional. A title for your poll",
-                               required=False
-                           ),
-                           manage_commands.create_option(
-                               name="channel",
-                               option_type=7,
-                               description="Optional. Send the poll to a different channel than this one",
-                               required=False
-                           ),
-                           utilities.createBooleanOption("singlevote", description="Only allow one response per user")
-                       ])
+    @cog_ext.cog_slash(**slashParser.getDecorator("poll"))
     async def poll(self, ctx: SlashContext, options: str, title: str = None, channel=None,
                    singlevote: str = "False"):
         """Create a poll in the current channel"""
