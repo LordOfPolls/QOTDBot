@@ -1,0 +1,8 @@
+{
+  "decorator": {
+    "name": "privacy",
+    "description": "A privacy statement about the bot",
+    "options": null,
+    "guild_ids": null
+  }
+}

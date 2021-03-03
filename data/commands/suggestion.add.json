@@ -1,0 +1,33 @@
+{
+  "decorator": {
+    "name": "add",
+    "description": "Suggest a question for your servers QOTD",
+    "options": [
+      {
+        "name": "question",
+        "description": "The question you want to ask",
+        "type": 3,
+        "required": true,
+        "choices": []
+      },
+      {
+        "name": "hideQuestion",
+        "description": "Should the question be hidden in chat",
+        "type": 3,
+        "required": false,
+        "choices": [
+          {
+            "value": "True",
+            "name": "Yes"
+          },
+          {
+            "value": "False",
+            "name": "No"
+          }
+        ]
+      }
+    ],
+    "guild_ids": null,
+    "base": "suggestion"
+  }
+}

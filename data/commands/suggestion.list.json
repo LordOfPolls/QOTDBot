@@ -1,0 +1,9 @@
+{
+  "decorator": {
+    "name": "list",
+    "description": "List all suggested questions",
+    "options": null,
+    "guild_ids": null,
+    "base": "suggestion"
+  }
+}

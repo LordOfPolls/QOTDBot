@@ -1,0 +1,8 @@
+{
+  "decorator": {
+    "name": "send",
+    "description": "Manually sends a qotd now, does not affect the schedule",
+    "options": null,
+    "guild_ids": null
+  }
+}

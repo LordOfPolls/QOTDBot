@@ -1,0 +1,8 @@
+{
+  "decorator": {
+    "name": "remaining",
+    "description": "Check how many questions are remaining for your server",
+    "options": null,
+    "guild_ids": null
+  }
+}

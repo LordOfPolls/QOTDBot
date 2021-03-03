@@ -1,0 +1,17 @@
+{
+  "decorator": {
+    "name": "approve",
+    "description": "Approve a suggested question",
+    "options": [
+      {
+        "name": "questionid",
+        "description": "The questions ID (use /suggestion list to get this)",
+        "type": 4,
+        "required": true,
+        "choices": []
+      }
+    ],
+    "guild_ids": null,
+    "base": "suggestion"
+  }
+}

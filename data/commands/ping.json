@@ -1,0 +1,25 @@
+{
+  "decorator": {
+    "name": "ping",
+    "description": "Gets the bot's latency",
+    "options": [
+      {
+        "name": "test",
+        "description": "blah blah blah",
+        "type": 3,
+        "required": true,
+        "choices": [
+          {
+            "value": "True",
+            "name": "Yes"
+          },
+          {
+            "value": "False",
+            "name": "No"
+          }
+        ]
+      }
+    ],
+    "guild_ids": null
+  }
+}

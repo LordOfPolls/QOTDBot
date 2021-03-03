@@ -1,0 +1,8 @@
+{
+  "decorator": {
+    "name": "server",
+    "description": "Get an invite to the bots server",
+    "options": null,
+    "guild_ids": null
+  }
+}

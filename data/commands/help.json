@@ -1,0 +1,8 @@
+{
+  "decorator": {
+    "name": "help",
+    "description": "A helpful message",
+    "options": null,
+    "guild_ids": null
+  }
+}

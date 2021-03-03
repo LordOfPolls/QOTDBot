@@ -1,0 +1,46 @@
+{
+  "decorator": {
+    "name": "poll",
+    "description": "Create a poll -- polls update every 3 seconds",
+    "options": [
+      {
+        "name": "options",
+        "description": "The options of your poll, separated by commas",
+        "type": 3,
+        "required": true,
+        "choices": []
+      },
+      {
+        "name": "title",
+        "description": "Optional. A title for your poll",
+        "type": 3,
+        "required": false,
+        "choices": []
+      },
+      {
+        "name": "channel",
+        "description": "Optional. Send the poll to a different channel than this one",
+        "type": 7,
+        "required": false,
+        "choices": []
+      },
+      {
+        "name": "singlevote",
+        "description": "Only allow one response per user",
+        "type": 3,
+        "required": false,
+        "choices": [
+          {
+            "value": "True",
+            "name": "Yes"
+          },
+          {
+            "value": "False",
+            "name": "No"
+          }
+        ]
+      }
+    ],
+    "guild_ids": null
+  }
+}
