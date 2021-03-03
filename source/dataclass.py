@@ -1,5 +1,7 @@
+from pprint import pprint
+
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from . import databaseManager
 
@@ -23,18 +25,30 @@ class Bot(commands.Bot):
         self.shouldUpdateBL = True
         """Should the bot try and update bot-lists"""
 
+        self.perms = 0
+        """The perms the bot needs"""
+
         super().__init__(*args, **kwargs)
 
     async def getMessage(self, messageID: int, channel: discord.TextChannel) -> (discord.Message, None):
-        """Gets a message using the id given"""
+        """Gets a message using the id given
+        we dont use the built in get_message due to poor rate limit
+        """
         for message in self.cached_messages:
-            # Check if the message is in the cache to save querying discord
             if message.id == messageID:
                 return message
+        # bot has not cached this message, so search the channel for it
+        try:
+            o = discord.Object(id=messageID + 1)
+            msg = await channel.history(limit=1, before=o).next()
 
-        # try and find the message in the channel
-        o = discord.Object(id=messageID + 1)
-        msg = await channel.history(limit=1, before=o).next()
-        if messageID == msg.id:
-            return msg
+            if messageID == msg.id:
+                return msg
+
+            return None
+        except discord.NoMoreItems:
+            # the message could not be found
+            return None
+        except Exception as e:
+            print(e)
         return None

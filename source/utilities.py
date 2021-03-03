@@ -28,6 +28,15 @@ thread_pool = ThreadPoolExecutor(max_workers=2)  # a thread pool
 
 discordCharLimit = 2000
 
+logging.SPAM = 9
+logging.addLevelName(logging.SPAM, "SPAM")
+
+
+def spam(self, message, *args, **kws):
+    self._log(logging.SPAM, message, args, **kws)
+
+logging.Logger.spam = spam
+
 
 def getLog(filename, level=logging.DEBUG) -> logging:
     """ Sets up logging, to be imported by other files """
@@ -42,6 +51,7 @@ def getLog(filename, level=logging.DEBUG) -> logging:
             'WARNING': 'yellow',
             'ERROR': 'red',
             'CRITICAL': 'red,bg_yellow',
+            'SPAM': 'purple'
         },
         secondary_log_colors={},
         style='{'

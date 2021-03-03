@@ -70,7 +70,7 @@ class DBConnector:
 
     async def _connect(self):
         """Creates a connection to the database, either directly or through a tunnel"""
-        log.debug("Attempting to connect to local database")
+        log.spam("Attempting to connect to local database")
         try:
             self.dbPool = await aiomysql.create_pool(
                 user=DBUser,
@@ -93,7 +93,7 @@ class DBConnector:
             while not self.tunnel.is_active:
                 # Wait for the tunnel to be considered active
                 time.sleep(0.1)
-            log.info(
+            log.spam(
                 f"Connected to DB Server: {self.tunnel.is_active}. "
                 f"LocalAddr: {self.tunnel.local_bind_host}:{self.tunnel.local_bind_port}")
             log.debug("Attempting to connect to tunneled database")

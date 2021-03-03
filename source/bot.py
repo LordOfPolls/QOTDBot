@@ -5,13 +5,11 @@ from datetime import datetime
 import aiohttp
 import discord
 import discord_slash
-import discord_slash.model as slashModel
-from discord.ext import commands
 from discord_slash import SlashCommand, SlashContext, error
 
-from . import utilities, dataclass, checks, slashParser
+from . import utilities, dataclass
 
-log = utilities.getLog("Bot")
+log = utilities.getLog("Bot", level=logging.DEBUG)
 intents = discord.Intents.default()
 intents.members = True
 
@@ -21,26 +19,27 @@ bot = dataclass.Bot(
     case_insensitive=True,
     intents=intents,
     cogList=[
-        "source.cogs.qotd",
+        "source.cogs.base",
         "source.cogs.config",
-        "source.cogs.polls"
+        "source.cogs.polls",
+        "source.cogs.qotd",
     ],
     help_command=None
 )
 slash = SlashCommand(bot, sync_commands=True)  # register a slash command system
-if bot.cogList:
-    log.info("Mounting cogs...")
-    for cog in bot.cogList:
-        log.info(f"Mounting {cog}...")
-        bot.load_extension(cog)
-else:
-    log.warning("No cogs to load!")
 
 slash.logger = utilities.getLog("slashAPI", logging.DEBUG)
-perms = "24640"
+bot.perms = "24640"
 
 
 def run():
+    if bot.cogList:
+        log.info("Mounting cogs...")
+        for cog in bot.cogList:
+            log.spam(f"Mounting {cog}...")
+            bot.load_extension(cog)
+    else:
+        log.warning("No cogs to load!")
     log.info("Connecting to discord...")
     bot.run(utilities.getToken(), bot=True, reconnect=True)
 
@@ -63,24 +62,8 @@ async def startupTasks():
         _c = bot.get_cog(cog)
         if hasattr(_c, "setup"):
             await _c.setup()
+
     asyncio.create_task(statsUpdate())
-
-
-@bot.event
-async def on_ready():
-    """Called when the bot is ready"""
-    if not bot.startTime:
-        await startupTasks()
-    log.info("INFO".center(40, "-"))
-    log.info(f"Logged in as       : {bot.user.name} #{bot.user.discriminator}")
-    log.info(f"User ID            : {bot.user.id}")
-    log.info(f"Start Time         : {bot.startTime.ctime()}")
-    log.info(f"DB Connection Type : {'Tunneled' if bot.db.tunnel else 'Direct'}")
-    log.info(f"Server Count       : {len(bot.guilds)}")
-    log.info(f"Cog Count          : {len(bot.cogs)}")
-    log.info(f"Command Count      : {len(slash.commands)}")
-    log.info(f"Discord.py Version : {discord.__version__}")
-    log.info("END-INFO".center(40, "-"))
 
 
 async def statsUpdate():
@@ -103,7 +86,7 @@ async def statsUpdate():
 
         resp = await session.post(discordBots, data=dBotPayload)
         if resp.status == 200:
-            log.debug("Updated DiscordBotList.com")
+            log.spam("Updated DiscordBotList.com")
         else:
             log.error(f"Failed to update DiscordBotList.com: {resp.status}: {resp.reason}")
             if resp.status == 401:
@@ -111,155 +94,21 @@ async def statsUpdate():
                 bot.shouldUpdateBL = False
 
 
-@commands.check(checks.botHasPerms)
-@slash.slash(**slashParser.getDecorator("help"))
-async def helpCMD(ctx):
-    if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
-        raise discord_slash.error.CheckFailure
-    await ctx.respond()
-
-    _commands = slash.commands
-    subcommands = slash.subcommands
-    embed = utilities.defaultEmbed(title="")
-    embed.set_author(name="Command List", icon_url=bot.user.avatar_url)
-
-    for key in _commands:
-        cmd: slashModel.CommandObject = _commands[key]
-        if cmd.has_subcommands:
-            subCMDs = subcommands[cmd.name]
-            for _cmdKey in subCMDs:
-                subCMD: slashModel.SubcommandObject = subCMDs[_cmdKey]
-                embed.add_field(name=f"{cmd.name} {subCMD.name}", value=subCMD.description, inline=True)
-        else:
-            embed.add_field(name=cmd.name, value=cmd.description, inline=False)
-    embed.add_field(name="For assistance join my server:", value="https://discord.gg/V82f6HBujR", inline=False)
-    embed.set_footer(
-        text="All of the commands are integrated into your servers slash commands, to access them type `/`")
-    await ctx.send(embed=embed)
-
-
-@commands.check(checks.botHasPerms)
-@slash.slash(**slashParser.getDecorator("privacy"))
-async def privacy(ctx):
-    if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
-        raise discord_slash.error.CheckFailure
-    await ctx.respond()
-    data = open("data/privacy.md", "r").read()
-    data = data.replace("[@TheBot]", bot.user.mention)
-    await ctx.send(data, hidden=not await bot.is_owner(ctx.author))
-
-
-@commands.check(checks.botHasPerms)
-@slash.slash(**slashParser.getDecorator("ping"))
-async def ping(ctx):
-    if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
-        raise discord_slash.error.CheckFailure
-    await ctx.respond()
-    await ctx.send(f"Pong: {bot.latency * 1000:.2f}ms")
-
-
-@commands.check(checks.botHasPerms)
-@slash.slash(**slashParser.getDecorator("invite"))
-async def cmdInvite(ctx):
-    if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
-        raise discord_slash.error.CheckFailure
-    await ctx.respond()
-    await ctx.send(f"https://discord.com/oauth2/authorize?client_id={bot.user.id}"
-                   f"&permissions={perms}&scope=applications.commands%20bot")
-
-
-@commands.check(checks.botHasPerms)
-@slash.slash(**slashParser.getDecorator("server"))
-async def cmdServer(ctx):
-    if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
-        raise discord_slash.error.CheckFailure
-
-    await ctx.respond()
-    await ctx.send("https://discord.gg/V82f6HBujR")
-
-
-@bot.command(name="Shutdown", brief="Shuts down the bot")
-async def cmdShutdown(ctx: commands.Context):
-    if await bot.is_owner(ctx.author):
-        log.warning("Shutdown called")
-        await ctx.send("Shutting down 🌙")
-        await bot.close()
-
-
-@bot.command(name="setname", brief="Renames the bot")
-async def cmdSetName(ctx: commands.Context, name: str):
-    if await bot.is_owner(ctx.author):
-        await bot.user.edit(username=name)
-
-
-@bot.command(name="setAvatar", brief="Sets the bots avatar")
-async def cmdSetAvatar(ctx: commands.Context):
-    if await bot.is_owner(ctx.author):
-        if ctx.message.attachments:
-            photo = ctx.message.attachments[0].url
-            async with aiohttp.ClientSession() as session:
-                async with session.get(photo) as r:
-                    if r.status == 200:
-                        data = await r.read()
-                        try:
-                            await bot.user.edit(avatar=data)
-                            return await ctx.send("Set avatar, how do i look?")
-                        except discord.HTTPException:
-                            await ctx.send("Unable to set avatar")
-                            return
-        await ctx.send("I cant read that")
-
-
-@bot.command(name="status", brief="Status of the bot")
-async def cmdStatus(ctx: commands.Context):
-    if await bot.is_owner(ctx.author):
-        # grab DB data
-        setupGuilds = len(await bot.db.execute('SELECT * FROM QOTDBot.guilds WHERE timeZone IS NOT NULL'))
-        totalQuestions = await bot.db.execute(
-            "SELECT COUNT(*) FROM QOTDBot.questions ", getOne=True
-        )
-        totalLog = await bot.db.execute(
-            "SELECT COUNT(*) FROM QOTDBot.questionLog ", getOne=True
-        )
-
-        # get qotd cog's data
-        scheduledTasks = "Error, could not determine"
-        cog = bot.get_cog("QOTD")
-        if hasattr(cog, "scheduler"):
-            scheduledTasks = len(cog.scheduler.get_jobs())
-
-        # get uptime and human format it
-        uptime = datetime.now() - bot.startTime
-        days, remainder = divmod(uptime.total_seconds(), 86400)
-        hours, remainder = divmod(remainder, 3600)
-        minutes, seconds = divmod(remainder, 60)
-
-        if days != 0:
-            days = f"{days} day{'s' if days > 1 else ''}, "
-        else:
-            days = ""
-
-        message = [
-            "```css",
-            f"Logged in as       : '{bot.user.name} #{bot.user.discriminator}'",
-            f"User ID            : '{bot.user.id}'",
-            f"Start Time         : '{bot.startTime.ctime()}'",
-            f"Uptime             : '{days}{round(hours):02}:{round(minutes):02}:{round(seconds):02}'",
-            f"DB Connection Type : '{'Tunneled' if bot.db.tunnel else 'Direct'}'",
-            f"DB Operations      : '{bot.db.operations}'",
-            f"Stored Questions   : '{totalQuestions['COUNT(*)']}'",
-            f"Question Log Size  : '{totalLog['COUNT(*)']}'",
-            f"Scheduled Tasks    : '{scheduledTasks}'",
-            f"Server Count       : '{len(bot.guilds)}'",
-            f"Setup Servers      : '{setupGuilds}'",
-            f"Cog Count          : '{len(bot.cogs)}'",
-            f"Command Count      : '{len(slash.commands)}'",
-            f"Discord.py Version : '{discord.__version__}'",
-            "```"
-        ]
-        message.insert(1, "BOT INFO".center(len(max(message, key=len)), "-"))
-        message.insert(len(message) - 1, "END BOT INFO".center(len(max(message, key=len)), "-"))
-        await ctx.send("\n".join(message))
+@bot.event
+async def on_ready():
+    """Called when the bot is ready"""
+    if not bot.startTime:
+        await startupTasks()
+    log.info("INFO".center(40, "-"))
+    log.info(f"Logged in as       : {bot.user.name} #{bot.user.discriminator}")
+    log.info(f"User ID            : {bot.user.id}")
+    log.info(f"Start Time         : {bot.startTime.ctime()}")
+    log.info(f"DB Connection Type : {'Tunneled' if bot.db.tunnel else 'Direct'}")
+    log.info(f"Server Count       : {len(bot.guilds)}")
+    log.info(f"Cog Count          : {len(bot.cogs)}")
+    log.info(f"Command Count      : {len(slash.commands)}")
+    log.info(f"Discord.py Version : {discord.__version__}")
+    log.info("END-INFO".center(40, "-"))
 
 
 @bot.event
@@ -372,7 +221,7 @@ async def on_guild_remove(guild):
         await bot.db.execute(
             f"DELETE FROM QOTDBot.guilds WHERE guildID = '{guild.id}'"
         )
-        log.debug(f"{guild.id}:: Data Purged")
+        log.spam(f"{guild.id}:: Data Purged")
     except Exception as e:
         log.critical(f"FAILED TO PURGE DATA FOR {guild.id}: {e}")
     asyncio.create_task(statsUpdate())
@@ -383,7 +232,7 @@ async def on_member_join(member):
     if member.guild.id == 110373943822540800:
         return
     if not member.bot:
-        log.debug("Member added event")
+        log.spam("Member added event")
         asyncio.create_task(statsUpdate())
 
 
@@ -392,5 +241,5 @@ async def on_member_remove(member):
     if member.guild.id == 110373943822540800:
         return
     if not member.bot:
-        log.debug("Member removed event")
+        log.spam("Member removed event")
         asyncio.create_task(statsUpdate())
