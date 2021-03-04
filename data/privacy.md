@@ -24,7 +24,15 @@ Once the suggestion is approved or rejected, it's deleted from [@TheBot]
 - The guild_ID for the question You'll note that the author is not stored, once the question is approved there's no need to store it
 
 **Polls**:
-- Nothing is stored on [@TheBot]. [@TheBot] uses the message to process the poll
+
+Polls need a decent amount of information to operate, but all of it is operational data
+- The title of the poll
+- The options of the poll
+- The author id of the poll
+- The channel id the poll is in
+- The guild id the poll is in
+- When should the poll be closed automatically (if at all)
+- Are single votes enforced?
 
 **Users**:
 - User ID's of people who have abused [@TheBot] and are now blocked
