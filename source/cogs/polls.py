@@ -1,7 +1,6 @@
 import asyncio
 import json
 from datetime import datetime, timedelta
-from pprint import pprint
 
 import discord
 import discord_slash.error
@@ -34,7 +33,6 @@ class Polls(commands.Cog):
         """Creates a progress bar based on the reaction distribution on a message"""
         totalReactions = 0
 
-        print("checking emoji authors...")
         for reaction in message.reactions:
             # prevent people adding non-poll emoji to bring down percentage
             if reaction.emoji in self.bothEmoji:
@@ -42,9 +40,7 @@ class Polls(commands.Cog):
                     return user == self.bot.user
 
                 if await reaction.users().find(predicate):
-                    print("boop")
                     totalReactions += reaction.count - 1
-        print(totalReactions)
 
         for reaction in message.reactions:
             if reaction.emoji == emoji:
