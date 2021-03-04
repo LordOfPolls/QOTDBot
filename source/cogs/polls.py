@@ -11,7 +11,7 @@ import string
 from discord_slash import cog_ext, SlashContext
 from discord_slash.utils import manage_commands
 
-log = utilities.getLog("Cog::polls", level=9)
+log = utilities.getLog("Cog::polls")
 
 
 class Polls(commands.Cog):
