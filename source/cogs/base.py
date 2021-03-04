@@ -7,7 +7,7 @@ from discord.ext import commands
 from discord_slash import cog_ext, SlashContext, error
 import discord_slash.model as slashModel
 
-from source import utilities, dataclass, slashParser, checks
+from source import utilities, dataclass, jsonManager, checks
 
 log = utilities.getLog("Cog::base")
 
@@ -23,7 +23,7 @@ class Base(commands.Cog):
         self.emoji = "🚩"
 
     @commands.check(checks.botHasPerms)
-    @cog_ext.cog_slash(**slashParser.getDecorator("help"))
+    @cog_ext.cog_slash(**jsonManager.getDecorator("help"))
     async def helpCMD(self, ctx):
         if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -49,7 +49,7 @@ class Base(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.check(checks.botHasPerms)
-    @cog_ext.cog_slash(**slashParser.getDecorator("privacy"))
+    @cog_ext.cog_slash(**jsonManager.getDecorator("privacy"))
     async def privacy(self, ctx):
         if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -59,7 +59,7 @@ class Base(commands.Cog):
         await ctx.send(data, hidden=not await self.bot.is_owner(ctx.author))
 
     @commands.check(checks.botHasPerms)
-    @cog_ext.cog_slash(**slashParser.getDecorator("ping"))
+    @cog_ext.cog_slash(**jsonManager.getDecorator("ping"))
     async def ping(self, ctx):
         if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -67,7 +67,7 @@ class Base(commands.Cog):
         await ctx.send(f"Pong: {self.bot.latency * 1000:.2f}ms")
 
     @commands.check(checks.botHasPerms)
-    @cog_ext.cog_slash(**slashParser.getDecorator("invite"))
+    @cog_ext.cog_slash(**jsonManager.getDecorator("invite"))
     async def cmdInvite(self, ctx):
         if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -76,7 +76,7 @@ class Base(commands.Cog):
                        f"&permissions={self.bot.perms}&scope=applications.commands%20bot")
 
     @commands.check(checks.botHasPerms)
-    @cog_ext.cog_slash(**slashParser.getDecorator("server"))
+    @cog_ext.cog_slash(**jsonManager.getDecorator("server"))
     async def cmdServer(self, ctx):
         if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure

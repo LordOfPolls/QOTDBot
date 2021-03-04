@@ -14,7 +14,7 @@ from discord_slash import cog_ext, SlashContext
 from discord_slash.utils import manage_commands
 from fuzzywuzzy import fuzz
 
-from source import utilities, dataclass, checks, slashParser
+from source import utilities, dataclass, checks, jsonManager
 
 log = utilities.getLog("Cog::qotd")
 log.setLevel(logging.DEBUG)
@@ -156,7 +156,7 @@ class QOTD(commands.Cog):
         return True
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_slash(**slashParser.getDecorator("add"))
+    @cog_ext.cog_slash(**jsonManager.getDecorator("add"))
     async def cmdAddQuestion(self, ctx: SlashContext, *, question: str):
         """Checks if question is a duplicate, if not, adds to qotd pool"""
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
@@ -176,7 +176,7 @@ class QOTD(commands.Cog):
             await ctx.send(embed=embed)
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_slash(**slashParser.getDecorator("send"))
+    @cog_ext.cog_slash(**jsonManager.getDecorator("send"))
     async def cmdManualSend(self, ctx: SlashContext):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -195,7 +195,7 @@ class QOTD(commands.Cog):
             await ctx.send("Failed to send in qotd channel. Check permissions")
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_slash(**slashParser.getDecorator("remaining"))
+    @cog_ext.cog_slash(**jsonManager.getDecorator("remaining"))
     async def cmdQuestionsLeft(self, ctx: SlashContext):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -224,7 +224,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
         await ctx.send(embed=_emb)
 
     @commands.check(checks.checkUserAll)
-    @cog_ext.cog_subcommand(**slashParser.getDecorator("suggestion.add"))
+    @cog_ext.cog_subcommand(**jsonManager.getDecorator("suggestion.add"))
     async def slashSuggest(self, ctx: SlashContext, question: str, HideQuestion: str = "False",
                            defaultQuestion: bool = False):
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
@@ -247,7 +247,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                 colour=discord.Colour.green()))
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(**slashParser.getDecorator("suggestion.list"))
+    @cog_ext.cog_subcommand(**jsonManager.getDecorator("suggestion.list"))
     async def slashListSuggestions(self, ctx: SlashContext):
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -272,7 +272,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
             max_lines=10, empty=False)
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(**slashParser.getDecorator("suggestion.approve"))
+    @cog_ext.cog_subcommand(**jsonManager.getDecorator("suggestion.approve"))
     async def slashApproveSuggestion(self, ctx: SlashContext, questionID: int):
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -317,7 +317,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
             await ctx.send(embed=emb)
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(**slashParser.getDecorator("suggestion.reject"))
+    @cog_ext.cog_subcommand(**jsonManager.getDecorator("suggestion.reject"))
     async def slashDenySuggestion(self, ctx: SlashContext, questionID: int):
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure

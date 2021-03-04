@@ -11,7 +11,7 @@ from discord_slash import cog_ext, SlashContext
 from discord_slash.utils import manage_commands
 from fuzzywuzzy import fuzz
 
-from source import utilities, dataclass, checks, slashParser
+from source import utilities, dataclass, checks, jsonManager
 
 log = utilities.getLog("Cog::config")
 
@@ -152,7 +152,7 @@ class Config(commands.Cog):
     # endregion options
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(**slashParser.getDecorator("setup.active"))
+    @cog_ext.cog_subcommand(**jsonManager.getDecorator("setup.active"))
     async def slashActive(self, ctx, state: str = "False"):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -172,7 +172,7 @@ class Config(commands.Cog):
             log.debug(f"{ctx.guild.id} disabled QOTD")
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(**slashParser.getDecorator("setup.simple"))
+    @cog_ext.cog_subcommand(**jsonManager.getDecorator("setup.simple"))
     async def slashSetup(self, ctx: SlashContext):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -203,7 +203,7 @@ class Config(commands.Cog):
         await self.submitToQOTD(ctx.guild)
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(**slashParser.getDecorator("setup.time"))
+    @cog_ext.cog_subcommand(**jsonManager.getDecorator("setup.time"))
     async def slashSetTime(self, ctx: SlashContext, hour: int):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -222,7 +222,7 @@ class Config(commands.Cog):
         await self.submitToQOTD(ctx.guild)
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(**slashParser.getDecorator("setup.timezone"))
+    @cog_ext.cog_subcommand(**jsonManager.getDecorator("setup.timezone"))
     async def slashSetTimeZone(self, ctx: SlashContext, timezone: str):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
@@ -266,7 +266,7 @@ class Config(commands.Cog):
             await ctx.send(embed=_emb)
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(**slashParser.getDecorator("setup.channel"))
+    @cog_ext.cog_subcommand(**jsonManager.getDecorator("setup.channel"))
     async def slashSetChannel(self, ctx: SlashContext,
                               channel: discord.TextChannel or discord.CategoryChannel or discord.VoiceChannel):
         """Sets the channel to ask questions"""
@@ -291,7 +291,7 @@ class Config(commands.Cog):
             await ctx.send(embed=_emb)
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(**slashParser.getDecorator("setup.role"))
+    @cog_ext.cog_subcommand(**jsonManager.getDecorator("setup.role"))
     async def slashSetMention(self, ctx, role: discord.Role or None = None, clear: str = None):
         """Sets a role that will be mentioned when a question is posted """
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
@@ -324,7 +324,7 @@ class Config(commands.Cog):
             return await ctx.send("Got it, i wont mention anybody when i post")
 
     @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(**slashParser.getDecorator("setup.pin"))
+    @cog_ext.cog_subcommand(**jsonManager.getDecorator("setup.pin"))
     async def slashSetPin(self, ctx, option: str = "False"):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
