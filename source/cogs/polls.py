@@ -65,30 +65,37 @@ class Polls(commands.Cog):
         # total all reactions that are part of the poll
         options = json.loads(pollData['options'])
         totalReactions = 0
-        for reaction in message.reactions:
-            if reaction.emoji in str(options):
-                totalReactions += reaction.count - 1
 
         for reaction in message.reactions:
-            if reaction.emoji in str(options):
-                # create a progress bar for this emoji
-                progBarStr = ''
-                progBarLength = 10
-                percentage = 0
-                if totalReactions != 0:
-                    percentage = (reaction.count - 1) / totalReactions
-                    for i in range(progBarLength):
-                        if round(percentage, 1) <= 1 / progBarLength * i:
-                            progBarStr += u"░"
-                        else:
-                            progBarStr += u'▓'
-                else:
-                    progBarStr = u"░" * progBarLength
+            try:
+                if reaction.emoji in str(options):
+                    totalReactions += reaction.count - 1
+            except TypeError:
+                continue
 
-                # format and add progressbar to embed
-                progBarStr = progBarStr + f" {round(percentage * 100)}%"
-                name = [item for item in options if item.startswith(reaction.emoji)][0]
-                embed.add_field(name=name, value=progBarStr, inline=False)
+        for reaction in message.reactions:
+            try:
+                if reaction.emoji in str(options):
+                    # create a progress bar for this emoji
+                    progBarStr = ''
+                    progBarLength = 10
+                    percentage = 0
+                    if totalReactions != 0:
+                        percentage = (reaction.count - 1) / totalReactions
+                        for i in range(progBarLength):
+                            if round(percentage, 1) <= 1 / progBarLength * i:
+                                progBarStr += u"░"
+                            else:
+                                progBarStr += u'▓'
+                    else:
+                        progBarStr = u"░" * progBarLength
+
+                    # format and add progressbar to embed
+                    progBarStr = progBarStr + f" {round(percentage * 100)}%"
+                    name = [item for item in options if item.startswith(reaction.emoji)][0]
+                    embed.add_field(name=name, value=progBarStr, inline=False)
+            except TypeError:
+                continue
         return embed
 
     @tasks.loop(seconds=30)
