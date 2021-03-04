@@ -177,7 +177,14 @@ class Polls(commands.Cog):
             options[i] = f"{emojiList[i]}- {options[i]}"
             embed.add_field(name=options[i], value="░░░░░░░░░░ 0%", inline=False)
 
-        msg = await ctx.send(embed=embed)
+        if channel:
+            if not await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), channel):
+                return await ctx.send("Sorry, I am missing permissions in that channel.\n"
+                                      "I need send messages, add reactions, manage messages, and embed links")
+            msg = await channel.send(embed=embed)
+        else:
+            msg = await ctx.send(embed=embed)
+
         await ctx.send("To close the poll, react to it with 🔴", hidden=True)
         for i in range(len(options)):
             await msg.add_reaction(emojiList[i])
