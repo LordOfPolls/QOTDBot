@@ -39,6 +39,13 @@
             "name": "No"
           }
         ]
+      },
+      {
+        "name": "time",
+        "description": "How many minutes the poll will stay open",
+        "type": 4,
+        "required": false,
+        "choices": []
       }
     ],
     "guild_ids": null
