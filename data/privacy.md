@@ -39,7 +39,7 @@ Polls need a decent amount of information to operate, but all of it is operation
 
 Upon kicking the bot, **all** data for your guild, members, questions is purged automatically. The downside of this, is if you have removed the bot and then re-add it, you'll have to start from scratch. The rational here is again, I only want to store the data [@TheBot] **needs**.
 
-Updated: 24/02/2021
+Updated: 04/03/2021
 
 -``LordOfPolls #1010``
 
