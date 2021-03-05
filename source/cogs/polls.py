@@ -16,7 +16,7 @@ log = utilities.getLog("Cog::polls")
 class Polls(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        strEmoji = "0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🇦 🇧 🇨 🇩 🇪 🇫 🇬 🇭 🇮"
+        strEmoji = "0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🇦 🇧 🇨 🇩 🇪 🇫 🇬 🇭"
         self.emoji = strEmoji.split(" ")
         self.booleanEmoji = ["✅", "❎"]
         self.bothEmoji = self.emoji + self.booleanEmoji
@@ -28,36 +28,6 @@ class Polls(commands.Cog):
         log.info("Starting poll tasks...")
         self.updatePoll.start()
         self.closePollsTask.start()
-
-    async def createBar(self, message: discord.Message, emoji):
-        """Creates a progress bar based on the reaction distribution on a message"""
-        totalReactions = 0
-
-        for reaction in message.reactions:
-            # prevent people adding non-poll emoji to bring down percentage
-            if reaction.emoji in self.bothEmoji:
-                def predicate(user):
-                    return user == self.bot.user
-
-                if await reaction.users().find(predicate):
-                    totalReactions += reaction.count - 1
-
-        for reaction in message.reactions:
-            if reaction.emoji == emoji:
-                # create a bar for the specified emoji
-                progBarStr = ''
-                progBarLength = 10
-                percentage = 0
-                if totalReactions != 0:
-                    percentage = (reaction.count - 1) / totalReactions
-                    for i in range(progBarLength):
-                        if round(percentage, 1) <= 1 / progBarLength * i:
-                            progBarStr += u"░"
-                        else:
-                            progBarStr += u'▓'
-                else:
-                    progBarStr = u"░" * progBarLength
-                return progBarStr + f" {round(percentage * 100)}%"
 
     async def createProgBars(self, message: discord.Message, embed: discord.Embed, pollData: dict):
         """Creates a series of progress bars to represent poll options"""
@@ -134,10 +104,7 @@ class Polls(commands.Cog):
             footerText = originalEmbed.footer.text
             embed.set_footer(text=footerText.split("•")[0])
 
-            for i in range(len(originalEmbed.fields)):
-                emoji = originalEmbed.fields[i].name.split("-")[0]
-                embed.add_field(name=originalEmbed.fields[i].name,
-                                value=await self.createBar(message, emoji), inline=False)
+            embed = await self.createProgBars(message, embed, pollData)
 
             await message.edit(embed=embed)
 
@@ -154,18 +121,30 @@ class Polls(commands.Cog):
         singlevote = True if singlevote == "True" else False
 
         if len(options) >= 2000:
-            return await ctx.send("Sorry, but this would exceed discords character limit :sad:")
+            return await ctx.send("Sorry, but this would exceed discords character limit :slight_frown: ")
         options = options.split(", ")
         if len(options) > len(self.emoji):
-            return await ctx.send(f"Sorry I can only support {len(self.emoji)} options :sad:")
+            return await ctx.send(f"Sorry I can only support {len(self.emoji)} options :slight_frown: ")
 
         timeData = None
         if time is not None:
+            if time <= 0:
+                return await ctx.send("Sorry I cant do things in the past, please use a positive time value")
             timeData = timedelta(minutes=time)
             timeData = datetime.now() + timeData
 
         singleText = "" if singlevote is False else "• Only 1 response per user "
-        timeText = "" if time is None else f"• Closes after {time} minutes"
+        if time is not None:
+            # human format the time
+            days, remainder = divmod(time, 1440)
+            hours, minutes = divmod(remainder, 60)
+
+            rootText = "• Closes after"
+            days = "" if days == 0 else f"{days} day{'s' if days > 1 else ''} "
+            hours = "" if hours == 0 else f"{hours} hour{'s' if hours > 1 else ''} "
+            minutes = "" if minutes == 0 else f"{minutes} minute{'s' if minutes > 1 else ''} "
+            output = f"{rootText} {days}{hours}{minutes}"
+        timeText = "" if time is None else output
 
         embed = utilities.defaultEmbed(title="Poll" if title is None else f"Poll - {title}")
         embed.set_footer(icon_url=ctx.author.avatar_url,
@@ -210,30 +189,35 @@ class Polls(commands.Cog):
         """Update the bars on polls
         We dont want to do this every time a reaction is added as we're gunna get rate limited almost constantly
         3 seconds is the maximum amount of time a user will consider fast, so every 3 seconds we update"""
-        if len(self.pollsToUpdate) != 0:
-            for item in self.pollsToUpdate.copy():
-                # pop out the item when we update, so we dont re-check it in 3 seconds for no reason
-                self.pollsToUpdate.remove(item)
-                channel: discord.TextChannel = self.bot.get_channel(int(item[1]))
-                if channel:
-                    message: discord.Message = await self.bot.getMessage(messageID=int(item[0]), channel=channel)
-                    if message:
-                        originalEmbed = message.embeds[0]
-                        embed = utilities.defaultEmbed(title=originalEmbed.title)
-                        embed.set_footer(text=originalEmbed.footer.text, icon_url=originalEmbed.footer.icon_url)
-                        # update fields
-                        pollData = await self.bot.db.execute(
-                            f"SELECT * FROM QOTDBot.polls WHERE messageID = '{message.id}'",
-                            getOne=True
-                        )
-                        await self.createProgBars(message, embed, pollData)
+        try:
+            if len(self.pollsToUpdate) != 0:
+                for item in self.pollsToUpdate.copy():
+                    # pop out the item when we update, so we dont re-check it in 3 seconds for no reason
+                    self.pollsToUpdate.remove(item)
+                    channel: discord.TextChannel = self.bot.get_channel(int(item[1]))
+                    if channel:
+                        message: discord.Message = await self.bot.getMessage(messageID=int(item[0]), channel=channel)
+                        if message:
+                            originalEmbed = message.embeds[0]
+                            embed = utilities.defaultEmbed(title=originalEmbed.title)
+                            embed.set_footer(text=originalEmbed.footer.text, icon_url=originalEmbed.footer.icon_url)
+                            # update fields
+                            pollData = await self.bot.db.execute(
+                                f"SELECT * FROM QOTDBot.polls WHERE messageID = '{message.id}'",
+                                getOne=True
+                            )
+                            log.spam("Creating progbars")
+                            embed = await self.createProgBars(message, embed, pollData)
 
-                        if embed != originalEmbed:
-                            return asyncio.ensure_future(message.edit(
-                                embed=embed, allowed_mentions=discord.AllowedMentions.none()
-                            ))
-                        else:
-                            log.debug("No need to update")
+                            if embed != originalEmbed:
+                                log.spam("Updating poll")
+                                return asyncio.ensure_future(message.edit(
+                                    embed=embed, allowed_mentions=discord.AllowedMentions.none()
+                                ))
+                            else:
+                                log.spam("No need to update")
+        except Exception as e:
+            log.error(e)
 
     async def reactionProcessor(self, payload: discord.RawReactionActionEvent):
         """Processing the reaction event to determine if a poll needs updating
@@ -255,10 +239,14 @@ class Polls(commands.Cog):
                             f"SELECT authorID FROM QOTDBot.polls WHERE messageID = '{message.id}'",
                             getOne=True
                         )
-                        if payload.user_id == int(pollData['authorID']):
-                            return await self.closePoll(message)
-                        else:
-                            return asyncio.ensure_future(message.clear_reaction("🔴"))
+                        try:
+                            if payload.user_id == int(pollData['authorID']):
+                                return await self.closePoll(message)
+                            else:
+                                return asyncio.ensure_future(message.clear_reaction("🔴"))
+                        except TypeError:
+                            # this will be none if the author deleted their reaction before the poll could be closed
+                            return
 
                     if str(message.embeds[0].colour) != "#727272":
                         # is the poll still open?
@@ -273,6 +261,7 @@ class Polls(commands.Cog):
                 # add this message to a set to bulk update shortly
                 if payload.emoji.name in self.emoji + self.booleanEmoji:
                     self.pollsToUpdate.add((payload.message_id, payload.channel_id))
+                    log.spam("Submitted poll to update task")
 
 
 def setup(bot):
