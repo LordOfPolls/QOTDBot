@@ -138,6 +138,10 @@ async def on_slash_command_error(ctx, ex):
                        f"Please make sure i can access this channel, manage messages, embed links, and add reactions.")
     elif isinstance(ex, discord_slash.error.CheckFailure):
         log.debug(f"Ignoring command: check failure")
+    elif isinstance(ex, discord.NotFound):
+        log.error(ex)
+        await ctx.send("Discord did not send the interaction correctly, this usually resolves after a few minutes, "
+                       "if it doesnt, please use `/server` and report it")
     else:
         log.error(ex)
         await ctx.send("An un-handled error has occurred, and has been logged, please try again later.\n"
