@@ -26,7 +26,7 @@
       },
       {
         "name": "singlevote",
-        "description": "Only allow one response per user",
+        "description": "Optional. Only allow one response per user",
         "type": 3,
         "required": false,
         "choices": [
@@ -42,7 +42,7 @@
       },
       {
         "name": "time",
-        "description": "How many minutes the poll will stay open",
+        "description": "Optional. Automatically close the poll after this many minutes",
         "type": 4,
         "required": false,
         "choices": []
