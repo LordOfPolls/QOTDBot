@@ -1,16 +1,17 @@
 import asyncio
 import json
+import os
+import sys
 from datetime import datetime, timedelta
 
 import discord
 import discord_slash.error
 from discord.ext import commands, tasks
-from source import utilities, checks, jsonManager
-import string
 from discord_slash import cog_ext, SlashContext
-from discord_slash.utils import manage_commands
 
-log = utilities.getLog("Cog::polls")
+from source import utilities, checks, jsonManager
+
+log = utilities.getLog("Cog::polls", level=9)
 
 
 class Polls(commands.Cog):
@@ -108,81 +109,137 @@ class Polls(commands.Cog):
 
             await message.edit(embed=embed)
 
+    async def createAndPostPoll(self, ctx: SlashContext, options: list, **kwargs):
+        """Creates a poll with the passed kwargs, and posts it"""
+        try:
+            embed = utilities.defaultEmbed(title="Poll")
+            title = None
+            singleVote = None
+            channel = None
+            time = None
+            timeData = None
+            timeText = None
+            singleText = None
+
+            if "title" in kwargs and kwargs['title'] is not None:
+                title = kwargs['title']
+                embed.title = f"Poll - {title}"
+            if "singleVote" in kwargs and kwargs['singleVote'] is not None:
+                singleVote = True if kwargs['singleVote'] == "True" else False
+            if "time" in kwargs and kwargs['time'] is not None:
+                time = kwargs['time']
+            if "channel" in kwargs and kwargs['channel'] is not None:
+                channel = kwargs['channel']
+
+            # sanity check options
+            if len(options) > len(self.emoji):
+                return await ctx.send(f"Sorry I can only support {len(self.emoji)} options :slight_frown: ")
+            if time is not None and time <= 0:
+                return await ctx.send("Sorry I cant do things in the past, please use a positive time value")
+
+            # Process time
+            if time is not None:
+                timeData = datetime.now() + timedelta(minutes=time)
+                # format time in human readable format
+                days, remainder = divmod(time, 1440)
+                hours, minutes = divmod(remainder, 60)
+
+                days = "" if days == 0 else f"{days} day{'s' if days > 1 else ''} "
+                hours = "" if hours == 0 else f"{hours} hour{'s' if hours > 1 else ''} "
+                minutes = "" if minutes == 0 else f"{minutes} minute{'s' if minutes > 1 else ''} "
+                timeText = f"• Closes after {days}{hours}{minutes}"
+
+            singleText = "" if singleVote is False else "• Only 1 response per user "
+
+            embed.set_footer(icon_url=ctx.author.avatar_url,
+                             text=f"Asked by {ctx.author.display_name} {singleText}{timeText}")
+
+            # pick emoji list to use
+            if len(options) == 2:
+                # if theres only 2 options, ticks and crosses look nicer
+                emojiList = self.booleanEmoji
+            else:
+                emojiList = self.emoji
+            # add options to embed
+            for i in range(len(options)):
+                options[i] = f"{emojiList[i]}- {options[i]}"
+                embed.add_field(name=options[i], value="░░░░░░░░░░ 0%", inline=False)
+
+            # send poll
+            if channel:
+                if not await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), channel):
+                    return await ctx.send("Sorry, I am missing permissions in that channel.\n"
+                                          "I need send messages, add reactions, manage messages, and embed links")
+                msg = await channel.send(embed=embed)
+            else:
+                msg = await ctx.send(embed=embed)
+
+            # add reactions to vote with
+            await ctx.send("To close the poll, react to it with 🔴", hidden=True)
+            for i in range(len(options)):
+                await msg.add_reaction(emojiList[i])
+
+            # post to DB
+            options = await self.bot.db.escape(json.dumps(options))
+
+            title = f"'{title}'" if title is not None else "null"
+            timeData = f"'{timeData}'" if timeData is not None else "null"
+
+            operation = (
+                "INSERT INTO QOTDBot.polls (title, options, messageID, channelID, guildID, authorID, singleVote, endTime) "
+                f"VALUES ({title}, '{options}', '{msg.id}', '{msg.channel.id}', '{ctx.guild.id}', '{ctx.author.id}', "
+                f"{singleVote}, {timeData})"
+            )
+
+            await self.bot.db.execute(operation)
+        except Exception as e:
+            log.error(e)
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fileName = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            log.error(f"PollCreation error: {exc_type, fileName, exc_tb.tb_lineno}")
+
     @commands.check(checks.botHasPerms)
     @cog_ext.cog_slash(**jsonManager.getDecorator("poll"))
     async def poll(self, ctx: SlashContext, options: str, title: str = None, channel=None, singlevote: str = "False",
                    time=None):
-        """Creates a poll in the current channel"""
+        """Creates a poll with custom options"""
         if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
         await ctx.respond()
 
-        # Process user options
-        singlevote = True if singlevote == "True" else False
-
         if len(options) >= 2000:
             return await ctx.send("Sorry, but this would exceed discords character limit :slight_frown: ")
         options = options.split(", ")
-        if len(options) > len(self.emoji):
-            return await ctx.send(f"Sorry I can only support {len(self.emoji)} options :slight_frown: ")
+        await self.createAndPostPoll(ctx,
+                                     options=options,
+                                     title=title,
+                                     channel=channel,
+                                     singleVote=singlevote,
+                                     time=time)
 
-        timeData = None
-        if time is not None:
-            if time <= 0:
-                return await ctx.send("Sorry I cant do things in the past, please use a positive time value")
-            timeData = timedelta(minutes=time)
-            timeData = datetime.now() + timeData
-
-        singleText = "" if singlevote is False else "• Only 1 response per user "
-        if time is not None:
-            # human format the time
-            days, remainder = divmod(time, 1440)
-            hours, minutes = divmod(remainder, 60)
-
-            rootText = "• Closes after"
-            days = "" if days == 0 else f"{days} day{'s' if days > 1 else ''} "
-            hours = "" if hours == 0 else f"{hours} hour{'s' if hours > 1 else ''} "
-            minutes = "" if minutes == 0 else f"{minutes} minute{'s' if minutes > 1 else ''} "
-            output = f"{rootText} {days}{hours}{minutes}"
-        timeText = "" if time is None else output
-
-        embed = utilities.defaultEmbed(title="Poll" if title is None else f"Poll - {title}")
-        embed.set_footer(icon_url=ctx.author.avatar_url,
-                         text=f"Asked by {ctx.author.display_name} {singleText}{timeText}")
-
-        # add options to embed
-        if len(options) == 2:
-            emojiList = self.booleanEmoji
-        else:
-            emojiList = self.emoji
-        for i in range(len(options)):
-            options[i] = f"{emojiList[i]}- {options[i]}"
-            embed.add_field(name=options[i], value="░░░░░░░░░░ 0%", inline=False)
-
-        if channel:
-            if not await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), channel):
-                return await ctx.send("Sorry, I am missing permissions in that channel.\n"
-                                      "I need send messages, add reactions, manage messages, and embed links")
-            msg = await channel.send(embed=embed)
-        else:
-            msg = await ctx.send(embed=embed)
-
-        await ctx.send("To close the poll, react to it with 🔴", hidden=True)
-        for i in range(len(options)):
-            await msg.add_reaction(emojiList[i])
-
-        options = await self.bot.db.escape(json.dumps(options))
-
-        title = f"'{title}'" if title is not None else "null"
-        timeData = f"'{timeData}'" if timeData is not None else "null"
-
-        operation = (
-            "INSERT INTO QOTDBot.polls (title, options, messageID, channelID, guildID, authorID, singleVote, endTime) "
-            f"VALUES ({title}, '{options}', '{msg.id}', '{msg.channel.id}', '{ctx.guild.id}', '{ctx.author.id}', "
-            f"{singlevote}, {timeData})"
-        )
-
-        await self.bot.db.execute(operation)
+    @commands.check(checks.botHasPerms)
+    @cog_ext.cog_subcommand(**jsonManager.getDecorator("pollgen.week"))
+    async def pollGenWeek(self, ctx: SlashContext, title: str = None, channel=None, singlevote: str = "False",
+                          time=None):
+        """Creates a poll with day of week options"""
+        if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
+        await ctx.respond()
+        options = [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+        ]
+        await self.createAndPostPoll(ctx,
+                                     options=options,
+                                     title=title,
+                                     channel=channel,
+                                     singleVote=singlevote,
+                                     time=time)
 
     @tasks.loop(seconds=3)
     async def updatePoll(self):
