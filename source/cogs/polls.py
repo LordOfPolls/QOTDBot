@@ -30,6 +30,42 @@ class Polls(commands.Cog):
         self.updatePoll.start()
         self.closePollsTask.start()
 
+    def createBar(self, message: discord.Message, emoji):
+        """Creates a progress bar based on the reaction distribution on a message"""
+        totalReactions = sum([r.count - 1 for r in message.reactions])
+        for reaction in message.reactions:
+            if reaction.emoji == emoji:
+                progBarStr = ''
+                progBarLength = 10
+                percentage = 0
+                if totalReactions != 0:
+                    percentage = (reaction.count - 1) / totalReactions
+                    for i in range(progBarLength):
+                        if round(percentage, 1) <= 1 / progBarLength * i:
+                            progBarStr += u"░"
+                        else:
+                            progBarStr += u'▓'
+                else:
+                    progBarStr = u"░" * progBarLength
+                return progBarStr + f" {round(percentage*100)}%"
+
+    async def processLegacyPoll(self, message):
+        """It turns out some older polls before the poll update are still in use,
+        this processes them with the old logic"""
+        log.debug("Processing legacy poll")
+        originalEmbed = message.embeds[0]
+        embed = utilities.defaultEmbed(title=originalEmbed.title)
+        embed.set_footer(text=originalEmbed.footer.text, icon_url=originalEmbed.footer.icon_url)
+        # update fields
+        for i in range(len(originalEmbed.fields)):
+            emoji = originalEmbed.fields[i].name.split("-")[0]
+            embed.add_field(name=originalEmbed.fields[i].name,
+                            value=self.createBar(message, emoji), inline=False)
+        if embed != originalEmbed:
+            return await message.edit(embed=embed, allowed_mentions=discord.AllowedMentions.none())
+        else:
+            log.debug("No need to update")
+
     async def createProgBars(self, message: discord.Message, embed: discord.Embed, pollData: dict):
         """Creates a series of progress bars to represent poll options"""
 
@@ -263,6 +299,9 @@ class Polls(commands.Cog):
                                 f"SELECT * FROM QOTDBot.polls WHERE messageID = '{message.id}'",
                                 getOne=True
                             )
+                            # restore support to process legacy polls
+                            if pollData is None:
+                                return await self.processLegacyPoll(message)
                             log.spam("Creating progbars")
                             embed = await self.createProgBars(message, embed, pollData)
 
