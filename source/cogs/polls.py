@@ -11,7 +11,7 @@ from discord_slash import cog_ext, SlashContext
 
 from source import utilities, checks, jsonManager
 
-log = utilities.getLog("Cog::polls", level=9)
+log = utilities.getLog("Cog::polls")
 
 
 class Polls(commands.Cog):
@@ -118,8 +118,8 @@ class Polls(commands.Cog):
             channel = None
             time = None
             timeData = None
-            timeText = None
-            singleText = None
+            timeText = ""
+            singleText = ""
 
             if "title" in kwargs and kwargs['title'] is not None:
                 title = kwargs['title']
