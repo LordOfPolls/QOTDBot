@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import traceback
 from datetime import datetime
 
 import aiohttp
@@ -132,6 +133,11 @@ async def on_command_error(ctx, ex):
 
 @bot.event
 async def on_slash_command_error(ctx, ex):
+    def logError():
+        log.error('Ignoring exception in command {}: {}'.format(ctx.command,
+                                                                "".join(traceback.format_exception(type(ex), ex,
+                                                                                                   ex.__traceback__))))
+
     if isinstance(ex, discord.errors.Forbidden):
         log.error(f"Missing permissions in {ctx.guild.name}")
         await ctx.send(f"**Error:** I am missing permissions.\n"
@@ -139,11 +145,11 @@ async def on_slash_command_error(ctx, ex):
     elif isinstance(ex, discord_slash.error.CheckFailure):
         log.debug(f"Ignoring command: check failure")
     elif isinstance(ex, discord.NotFound):
-        log.error(ex)
+        logError()
         await ctx.send("Discord did not send the interaction correctly, this usually resolves after a few minutes, "
                        "if it doesnt, please use `/server` and report it")
     else:
-        log.error(ex)
+        logError()
         await ctx.send("An un-handled error has occurred, and has been logged, please try again later.\n"
                        "If this continues please use `/server` and report it in my server")
 
