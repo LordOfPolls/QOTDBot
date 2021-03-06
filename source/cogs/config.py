@@ -1,14 +1,11 @@
 import re
 from collections import Counter
 from datetime import datetime
-
 import discord
 import discord_slash
-import discord_slash.error
 import pytz
 from discord.ext import commands
-from discord_slash import cog_ext, SlashContext
-from discord_slash.utils import manage_commands
+from discord_slash import cog_ext, SlashContext, error
 from fuzzywuzzy import fuzz
 
 from source import utilities, dataclass, checks, jsonManager
@@ -17,54 +14,76 @@ log = utilities.getLog("Cog::config")
 
 
 class Config(commands.Cog):
-    """Configuration commands"""
+    """Configuration options"""
 
     def __init__(self, bot: dataclass.Bot):
         self.bot = bot
 
         self.emoji = "⚙"
 
-    def cog_check(self, ctx: commands.Context):
-        if ctx.guild:
-            if ctx.author.permissions_in(ctx.channel).manage_guild:
-                return True
-
     async def submitToQOTD(self, guild: discord.Guild):
-        """Tries to reschedule/create a job in qotd for this guild"""
+        """Tries to reschedule/create a job in QOTD for this guild"""
         for _cog in self.bot.cogs:
             if _cog == "QOTD":
                 await self.bot.cogs[_cog].rescheduleTask(guildID=guild.id)
                 return
 
-    # region options
-    async def getQotdChannel(self, ctx: commands.Context, _emb: discord.Embed, step: tuple = None) -> bool:
-        """Asks what channel to send to"""
-        _emb.description = \
+    async def findMatchingTimezone(self, userInput: str):
+        """Uses fuzzywuzzy to find a timezone matching the text passed"""
+        matches = {}
+        userInput = " ".join(userInput.split("/")).lower()
+        for tz in pytz.all_timezones:
+            _tz = " ".join(tz.split("/")).lower()
+            fuzzResult = fuzz.partial_ratio(userInput, _tz)
+            matches[tz] = fuzzResult
+
+        mostSimilar = Counter(matches)
+        return mostSimilar.most_common(1)[0][0]
+
+    @commands.check(checks.checkAll)
+    @cog_ext.cog_subcommand(**jsonManager.getDecorator("setup.simple"))
+    async def setupSimple(self, ctx: SlashContext):
+        if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
+            raise discord_slash.error.CheckFailure
+        await ctx.respond()
+
+        _emb = utilities.defaultEmbed(title="Simple Setup")
+
+        # region: QOTDChannel
+        embed = _emb.copy()
+        embed.set_footer(text="Step 1/3")
+
+        embed.description = \
             f"🔍**What channel do you want questions to be posted in?**🔍\n" \
             f"Please mention the channel\n\n" \
             f"Example: \"{ctx.channel.mention}\""
-        if step:
-            _emb.set_footer(text=f"Step {step[0]}/{step[1]}")
-        msg = await ctx.send(embed=_emb)
+        msg = await ctx.send(embed=embed)
+
+        # wait for user to set a channel
         result = await utilities.waitForChannelMention(ctx, msg)
         if result:
             if not await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), result):
                 await ctx.send("Sorry, I am missing permissions in that channel.\n"
-                               "I need send messages, add reactions, manage messages, and embed links")
-                return False
+                               "I need send messages, add reactions, manage messages, and embed links\n")
+                embed.colour = discord.Colour.red()
+                embed.description = f"Setup Failed, use `/setup simple` to try again"
+                await msg.edit(embed=embed)
             await self.bot.db.execute(
                 f"UPDATE QOTDBot.guilds SET qotdChannel='{result.id}' "
                 f"WHERE guildID = '{ctx.guild.id}'")
-            _emb.colour = discord.Colour.green()
-            _emb.description = f"Set QOTD Channel to {result.mention}"
-            await msg.edit(embed=_emb)
-            return True
+            embed.colour = discord.Colour.green()
+            embed.description = f"Set QOTD Channel to {result.mention}"
+            await msg.edit(embed=embed)
         else:
-            return False
+            embed.colour = discord.Colour.red()
+            embed.description = f"Setup Failed, use `/setup simple` to try again"
+            return await msg.edit(embed=embed)
+        # endregion: QOTDChannel
 
-    async def getTimeZone(self, ctx: commands.Context, _emb: discord.Embed, step: tuple = None) -> bool:
-        """Asks for the users timezone"""
-        _emb.description = \
+        # region: Time zone
+        embed = _emb.copy()
+        embed.set_footer(text="Step 2/3")
+        embed.description = \
             "🌍**Please tell me what time zone your server is in**🌏\n" \
             "A map of time zones can be found [here](https://kevinnovak.github.io/Time-Zone-Picker/)\n" \
             "**Note:** Please do not use abbreviations like EST, UTC, or GMT. Instead use the full format, " \
@@ -73,83 +92,74 @@ class Config(commands.Cog):
             "Europe/London\n" \
             "America/New_York\n" \
             "Australia/Sydney"
-        if step:
-            _emb.set_footer(text=f"Step {step[0]}/{step[1]}")
-        msg = await ctx.send(embed=_emb)
+        msg = await ctx.send(embed=embed)
         result = await utilities.waitForMessageFromAuthor(ctx)
         if result:
             await msg.delete()
-            # try and find a matching timezone
-            matches = {}
-            userInput = result.content.lower()
-            userInput = " ".join(userInput.split("/"))
-            for tz in pytz.all_timezones:
-                _tz = " ".join(tz.split("/")).lower()
-                fuzzResult = fuzz.partial_ratio(userInput, _tz)
-                matches[tz] = fuzzResult
-
-            mostSimilar = Counter(matches)
-            mostSimilar = mostSimilar.most_common(1)[0]
-
-            # check with the user to see if this is correct
-            time = datetime.now(tz=pytz.timezone(mostSimilar[0]))
-            _resultEmb = _emb.copy()
-            _emb.description = f"Setting your timezone to **{mostSimilar[0]}**\n" \
-                               f"That would make it **{time.hour:02}:{time.minute:02}** for you?\n\n" \
-                               f"React with 👍 if that's correct"
-            msg = await ctx.send(embed=_emb)
+            # try and find matching timezone
+            possibleTimezone = await self.findMatchingTimezone(result.content)
+            time = datetime.now(tz=pytz.timezone(possibleTimezone))
+            embed.description = f"Setting your timezone to **{possibleTimezone}**\n" \
+                                f"That would make it **{time.hour:02}:{time.minute:02}** for you?\n\n" \
+                                f"React with 👍 if that's correct"
+            msg = await ctx.send(embed=embed)
             result = await utilities.YesOrNoReactionCheck(ctx, msg)
             if result:
-                # if it is correct, upload to db, and return
+                # if it is correct, push to db, and return
                 await self.bot.db.execute(
-                    f"UPDATE QOTDBot.guilds SET timeZone='{mostSimilar[0]}' "
+                    f"UPDATE QOTDBot.guilds SET timeZone='{possibleTimezone}' "
                     f"WHERE guildID = '{ctx.guild.id}'")
-                _emb.colour = discord.Colour.green()
-                _emb.description = f"Your timezone has been set to **{mostSimilar[0]}**"
-                await msg.edit(embed=_emb)
-                return True
+                embed.colour = discord.Colour.green()
+                embed.description = f"Your timezone has been set to **{possibleTimezone}**"
+                await msg.edit(embed=embed)
             else:
-                _emb.colour = discord.Colour.orange()
-                _emb.description = "Oh okay, lets try again"
-        return False
+                embed.colour = discord.Colour.red()
+                embed.description = f"Setup Failed, use `/setup simple` to try again"
+                return await msg.edit(embed=embed)
+        else:
+            embed.colour = discord.Colour.red()
+            embed.description = f"Setup Failed, use `/setup simple` to try again"
+            return await msg.edit(embed=embed)
+        # endregion: Time zone
 
-    async def getTime(self, ctx: commands.Context, _emb: discord.Embed, step: tuple = None) -> bool:
-        """Asks what time the question should be posted at"""
-        _emb.description = \
+        # region: time
+        embed = _emb.copy()
+        embed.set_footer(text="Step 2/3")
+        embed.description = \
             f"🕖**At what time would you like questions to be asked?**🕖\n" \
             f"Please enter the hour of the day you'd like to get a question\n\n" \
             f"This should be a number from 0 to 23, as per the 24-hour clock.\n\n" \
             f"**Example:** 7"
-        if step:
-            _emb.set_footer(text=f"Step {step[0]}/{step[1]}")
-        msg = await ctx.send(embed=_emb)
-        hour = -1
-        for i in range(3):
-            # will allow for 3 invalid messages before giving up
-            result = await utilities.waitForMessageFromAuthor(ctx)
-            try:
-                # users can be weird and not just give the number, this strips all non digits
-                hour = int(re.search(r'\d+', result.content).group())
-                if 0 <= hour <= 23:
-                    # valid time
-                    break
-                else:
-                    # invalid time
-                    continue
-            except AttributeError:
-                continue
+        msg = await ctx.send(embed=embed)
+        result = await utilities.waitForMessageFromAuthor(ctx)
+        if result:
+            hour = int(re.search(r'\d+', result.content).group())
+            if 0 <= hour <= 23:
+                # valid time
+                await self.bot.db.execute(
+                    f"UPDATE QOTDBot.guilds SET sendTime={hour} "
+                    f"WHERE guildID = '{ctx.guild.id}'")
+                _emb.colour = discord.Colour.green()
+                _emb.description = f"Your questions will be sent at **{hour:02}:00**"
+                await msg.edit(embed=_emb)
+            else:
+                await ctx.send("Sorry, the time has to be between 0 and 23")
+                embed.colour = discord.Colour.red()
+                embed.description = f"Setup Failed, use `/setup simple` to try again"
+                return await msg.edit(embed=embed)
         else:
-            # user didnt give a valid response in time
-            return False
-        await self.bot.db.execute(
-            f"UPDATE QOTDBot.guilds SET sendTime={hour} "
-            f"WHERE guildID = '{ctx.guild.id}'")
-        _emb.colour = discord.Colour.green()
-        _emb.description = f"Your questions will be sent at **{hour:02}:00**"
-        await msg.edit(embed=_emb)
-        return True
+            await ctx.send("Sorry, the time has to be between 0 and 23")
+            embed.colour = discord.Colour.red()
+            embed.description = f"Setup Failed, use `/setup simple` to try again"
+            return await msg.edit(embed=embed)
+        # endregion: time
 
-    # endregion options
+        _emb.colour = discord.Colour.gold()
+        _emb.title = "🎉🥳🎉 **Setup Complete** 🎉🥳🎉"
+        _emb.description = "QOTD has been configured and enabled. Enjoy :slight_smile:"
+        await ctx.send(embed=_emb)
+
+        await self.submitToQOTD(ctx.guild)
 
     @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(**jsonManager.getDecorator("setup.active"))
@@ -170,37 +180,6 @@ class Config(commands.Cog):
                 f"WHERE guildID = '{ctx.guild.id}'")
             await ctx.send("QOTD has been disabled")
             log.debug(f"{ctx.guild.id} disabled QOTD")
-
-    @commands.check(checks.checkAll)
-    @cog_ext.cog_subcommand(**jsonManager.getDecorator("setup.simple"))
-    async def slashSetup(self, ctx: SlashContext):
-        if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
-            raise discord_slash.error.CheckFailure
-        await ctx.respond()
-        _emb = utilities.defaultEmbed(title="Simple Setup")
-        step = 1
-
-        if not await self.getQotdChannel(ctx, _emb.copy(), (step, 3)):
-            return await ctx.send("Setup aborted")
-        step += 1
-
-        if not await self.getTimeZone(ctx, _emb.copy(), (step, 3)):
-            return await ctx.send("Setup aborted")
-        step += 1
-
-        if not await self.getTime(ctx, _emb.copy(), (step, 3)):
-            return await ctx.send("Setup aborted")
-        step += 1
-
-        await self.bot.db.execute(
-            f"UPDATE QOTDBot.guilds SET enabled=TRUE "
-            f"WHERE guildID = '{ctx.guild.id}'")
-
-        _emb.colour = discord.Colour.gold()
-        _emb.title = "🎉🥳🎉 **Setup Complete** 🎉🥳🎉"
-        await ctx.send(embed=_emb)
-
-        await self.submitToQOTD(ctx.guild)
 
     @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(**jsonManager.getDecorator("setup.time"))
@@ -335,8 +314,7 @@ class Config(commands.Cog):
         else:
             await ctx.send("Okay, no pinning")
         await self.bot.db.execute(
-            f"UPDATE QOTDBot.guilds SET pinMessage = {option} WHERE guildID = '{ctx.guild.id}'"
-        )
+            f"UPDATE QOTDBot.guilds SET pinMessage = {option} WHERE guildID = '{ctx.guild.id}'")
 
 
 def setup(bot):
