@@ -25,6 +25,17 @@ class Polls(commands.Cog):
         self.bot.add_listener(self.reactionProcessor, "on_raw_reaction_add")
         self.bot.add_listener(self.reactionProcessor, "on_raw_reaction_remove")
 
+        # add pollGen commands
+        prefab = jsonManager.getDecorator("pollPrefab")
+        pWeek = prefab.copy()
+        pBoolean = prefab.copy()
+        pWeek['name'] = "week"
+        pWeek['description'] = "Post a poll with all the days of the week"
+        pBoolean['name'] = "boolean"
+        pBoolean['description'] = "Post a poll with yes or no options"
+        bot.slash.add_subcommand(cmd=self.pollPrefab, **pWeek)
+        bot.slash.add_subcommand(cmd=self.pollPrefab, **pBoolean)
+
     async def setup(self):
         log.info("Starting poll tasks...")
         self.updatePoll.start()
@@ -47,7 +58,7 @@ class Polls(commands.Cog):
                             progBarStr += u'▓'
                 else:
                     progBarStr = u"░" * progBarLength
-                return progBarStr + f" {round(percentage*100)}%"
+                return progBarStr + f" {round(percentage * 100)}%"
 
     async def processLegacyPoll(self, message):
         """It turns out some older polls before the poll update are still in use,
@@ -254,22 +265,28 @@ class Polls(commands.Cog):
                                      time=time)
 
     @commands.check(checks.botHasPerms)
-    @cog_ext.cog_subcommand(**jsonManager.getDecorator("pollgen.week"))
-    async def pollGenWeek(self, ctx: SlashContext, title: str = None, channel=None, singlevote: str = "False",
-                          time=None):
-        """Creates a poll with day of week options"""
-        if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
-            raise discord_slash.error.CheckFailure
+    async def pollPrefab(self, ctx: SlashContext, title: str = None, channel=None, singlevote: str = "False",
+                         time=None):
+        """Creates a poll with preset options"""
         await ctx.respond()
-        options = [
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-            "Sunday"
-        ]
+        if ctx.subcommand_name == "week":
+            options = [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday"
+            ]
+        elif ctx.subcommand_name == "boolean":
+            options = [
+                "Yes",
+                "No"
+            ]
+        else:
+            return await ctx.send("If you are seeing this, something has gone terribly wrong, "
+                                  "please use `/server` and report it in my server")
         await self.createAndPostPoll(ctx,
                                      options=options,
                                      title=title,
