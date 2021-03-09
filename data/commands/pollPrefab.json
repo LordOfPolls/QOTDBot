@@ -1,0 +1,48 @@
+{
+  "decorator": {
+    "name": "pending",
+    "description": "pending",
+    "options": [
+      {
+        "name": "title",
+        "description": "Optional. A title for your poll",
+        "type": 3,
+        "required": false,
+        "choices": []
+      },
+      {
+        "name": "channel",
+        "description": "Optional. Send the poll to a different channel than this one",
+        "type": 7,
+        "required": false,
+        "choices": []
+      },
+      {
+        "name": "singlevote",
+        "description": "Optional. Only allow one response per user",
+        "type": 3,
+        "required": false,
+        "choices": [
+          {
+            "value": "True",
+            "name": "Yes"
+          },
+          {
+            "value": "False",
+            "name": "No"
+          }
+        ]
+      },
+      {
+        "name": "time",
+        "description": "Optional. Automatically close the poll after this many minutes",
+        "type": 4,
+        "required": false,
+        "choices": []
+      }
+    ],
+    "guild_ids": null,
+    "base": "pollprefab",
+    "base_description": "Pre-made polls to quickly get the questions out there"
+  }
+}
