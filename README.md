@@ -19,6 +19,7 @@ Query has no useless features, only questions. Commands include: ``'Question of 
 The polls have support to up to 20 options, manual and scheduled closing, bar charts, custom titles, and single vote enforcement. This makes it one of the more advanced poll bots. 
 
 ![](https://i.imgur.com/fLAS8IN.png)
+
 ![](https://i.imgur.com/SmpxzfL.png)
 
 
