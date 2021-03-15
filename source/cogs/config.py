@@ -154,6 +154,10 @@ class Config(commands.Cog):
             return await msg.edit(embed=embed)
         # endregion: time
 
+        await self.bot.db.execute(
+            f"UPDATE QOTDBot.guilds SET enabled=TRUE "
+            f"WHERE guildID = '{ctx.guild.id}'")
+
         _emb.colour = discord.Colour.gold()
         _emb.title = "🎉🥳🎉 **Setup Complete** 🎉🥳🎉"
         _emb.description = "QOTD has been configured and enabled. Enjoy :slight_smile:"
