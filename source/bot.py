@@ -110,7 +110,8 @@ async def on_ready():
     log.info(f"Command Count      : {len(slash.commands)}")
     log.info(f"Discord.py Version : {discord.__version__}")
     log.info("END-INFO".center(40, "-"))
-
+    await bot.change_presence(status=discord.Status.online,
+                              activity=discord.Game(name="with questions"))
 
 @bot.event
 async def on_slash_command(ctx: SlashContext):

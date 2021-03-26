@@ -31,29 +31,7 @@ class QOTD(commands.Cog):
         # chance it can fail if not checked second by second
         self.scheduler = AsyncIOScheduler()  # the task scheduler
 
-        self.lastPresence = discord.Game(name="startup")
 
-    @tasks.loop(seconds=30)
-    async def statusMessageTask(self):
-        try:
-            total = await self.bot.db.execute(
-                "SELECT COUNT(*) FROM QOTDBot.questions ", getOne=True
-            )
-            activities = [
-                discord.Streaming(name=f"{total['COUNT(*)']} questions to you", url="https://www.twitch.tv/dnabrokeit"),
-                discord.Activity(type=discord.ActivityType.watching, name="chat"),
-                discord.Activity(type=discord.ActivityType.listening, name=f"{self.bot.db.operations} events"),
-                discord.Activity(type=discord.ActivityType.watching, name="r/askreddit"),
-                discord.Game(name=f"in {len(self.bot.guilds)} servers"),
-                discord.Activity(type=discord.ActivityType.watching, name="the clock"),
-                discord.Activity(type=discord.ActivityType.watching, name=f"{len(self.scheduler.get_jobs())} queues")
-            ]
-            if self.lastPresence in activities:
-                activities.remove(self.lastPresence)
-            self.lastPresence = random.choice(activities)
-            await self.bot.change_presence(status=discord.Status.online, activity=self.lastPresence)
-        except Exception as e:
-            log.error(e)
 
     async def rescheduleTask(self, guildID):
         """Reschedules a task"""
@@ -115,7 +93,6 @@ class QOTD(commands.Cog):
             self.scheduler.start()
         except Exception as e:
             log.critical(f"Error while setting up QOTD job: {e}")
-        self.statusMessageTask.start()
 
     async def checkSimilarity(self, ctx, question, mode, embed):
         # prevent duplicate questions being added
