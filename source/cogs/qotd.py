@@ -161,7 +161,7 @@ class QOTD(commands.Cog):
         """Checks if question is a duplicate, if not, adds to qotd pool"""
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
         mode = ctx.guild.id
         embed = utilities.defaultEmbed(title="Adding Question")
         embed.set_footer(icon_url=self.bot.user.avatar_url, text=f"{self.bot.user.name} • Custom Questions")
@@ -180,7 +180,7 @@ class QOTD(commands.Cog):
     async def cmdManualSend(self, ctx: SlashContext):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
         info = await self.bot.db.execute(
             f"SELECT qotdChannel FROM QOTDBot.guilds WHERE guildID = '{ctx.guild.id}'",
             getOne=True
@@ -199,7 +199,7 @@ class QOTD(commands.Cog):
     async def cmdQuestionsLeft(self, ctx: SlashContext):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
         customQuestions = await self.bot.db.execute(
             f"""SELECT COUNT(*) FROM QOTDBot.questions
 WHERE questions.guildID = '{ctx.guild.id}' AND questionID NOT IN (
@@ -230,7 +230,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
         HideQuestion = True if HideQuestion == "True" else False
-        await ctx.respond(eat=HideQuestion)
+        await ctx.defer(hidden=HideQuestion)
         question = await self.bot.db.escape(question)
         await self.bot.db.execute(
             f"INSERT INTO QOTDBot.suggestedQuestions (question, authorID, guildID) VALUES "
@@ -238,9 +238,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
         )
         if HideQuestion:
             await ctx.send(
-                embed=utilities.defaultEmbed(
-                    title=f"{ctx.author.display_name.capitalize()}'s Question Has Been Submitted",
-                    colour=discord.Colour.green()))
+                content="Your question has been submitted")
         else:
             await ctx.send(embed=utilities.defaultEmbed(
                 title=f"Your Question Has Been Submitted",
@@ -251,7 +249,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
     async def slashListSuggestions(self, ctx: SlashContext):
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
         data = await self.bot.db.execute(
             f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
         emb = utilities.defaultEmbed(title="Suggested Questions")
@@ -276,7 +274,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
     async def slashApproveSuggestion(self, ctx: SlashContext, questionID: int):
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
         data = await self.bot.db.execute(
             f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
         emb = utilities.defaultEmbed(title="Approved Question")
@@ -321,7 +319,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
     async def slashDenySuggestion(self, ctx: SlashContext, questionID: int):
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
         data = await self.bot.db.execute(
             f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
         emb = utilities.defaultEmbed(title="Rejected Question")

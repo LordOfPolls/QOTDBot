@@ -15,7 +15,7 @@ intents = discord.Intents.default()
 intents.members = True
 
 bot = dataclass.Bot(
-    command_prefix="/",
+    command_prefix=">",
     description="Query",
     case_insensitive=True,
     intents=intents,

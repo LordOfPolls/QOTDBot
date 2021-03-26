@@ -252,7 +252,7 @@ class Polls(commands.Cog):
         """Creates a poll with custom options"""
         if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
 
         if len(options) >= 2000:
             return await ctx.send("Sorry, but this would exceed discords character limit :slight_frown: ")
@@ -268,7 +268,7 @@ class Polls(commands.Cog):
     async def pollPrefab(self, ctx: SlashContext, title: str = None, channel=None, singlevote: str = "False",
                          time=None):
         """Creates a poll with preset options"""
-        await ctx.respond()
+        await ctx.defer()
         if ctx.subcommand_name == "week":
             options = [
                 "Monday",

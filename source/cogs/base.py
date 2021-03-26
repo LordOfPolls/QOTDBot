@@ -1,3 +1,7 @@
+import io
+import textwrap
+import traceback
+from contextlib import redirect_stdout
 from datetime import datetime
 
 import aiohttp
@@ -27,7 +31,7 @@ class Base(commands.Cog):
     async def helpCMD(self, ctx):
         if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
 
         _commands = self.slash.commands
         subcommands = self.slash.subcommands
@@ -53,7 +57,7 @@ class Base(commands.Cog):
     async def privacy(self, ctx):
         if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
         data = open("data/privacy.md", "r").read()
         data = data.replace("[@TheBot]", self.bot.user.mention)
         await ctx.send(data, hidden=not await self.bot.is_owner(ctx.author))
@@ -63,7 +67,6 @@ class Base(commands.Cog):
     async def ping(self, ctx):
         if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
         await ctx.send(f"Pong: {self.bot.latency * 1000:.2f}ms")
 
     @commands.check(checks.botHasPerms)
@@ -71,7 +74,6 @@ class Base(commands.Cog):
     async def cmdInvite(self, ctx):
         if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
         await ctx.send(f"https://discord.com/oauth2/authorize?client_id={self.bot.user.id}"
                        f"&permissions={self.bot.perms}&scope=applications.commands%20bot")
 
@@ -81,7 +83,6 @@ class Base(commands.Cog):
         if not checks.botHasPerms(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
 
-        await ctx.respond()
         await ctx.send("https://discord.gg/V82f6HBujR")
 
     @commands.command(name="Shutdown", brief="Shuts down the bot")
@@ -112,6 +113,61 @@ class Base(commands.Cog):
                                 await ctx.send("Unable to set avatar")
                                 return
             await ctx.send("I cant read that")
+
+    def get_syntax_error(self, e):
+        if e.text is None:
+            return '```py\n{0.__class__.__name__}: {0}\n```'.format(e)
+        return '```py\n{0.text}{1:>{0.offset}}\n{2}: {0}```'.format(e, '^', type(e).__name__)
+
+    @commands.command(name="exec", brief="Execute some code")
+    @commands.is_owner()
+    async def _exec(self, ctx: commands.Context, *, body: str):
+        env = {
+            'bot': self.bot,
+            'slash': self.bot.slash,
+            'ctx': ctx,
+            'channel': ctx.channel,
+            'author': ctx.author,
+            'server': ctx.guild,
+            'guild': ctx.guild,
+            'message': ctx.message
+        }
+        env.update(globals())
+
+        if body.startswith('```') and body.endswith('```'):
+            body = '\n'.join(body.split('\n')[1:-1])
+        else:
+            body = body.strip('` \n')
+
+        stdout = io.StringIO()
+
+        to_compile = 'async def func():\n%s' % textwrap.indent(body, '  ')
+
+        try:
+            exec(to_compile, env)
+        except SyntaxError as e:
+            return await ctx.send(self.get_syntax_error(e))
+
+        func = env['func']
+        try:
+            with redirect_stdout(stdout):
+                ret = await func()
+        except Exception as e:
+            value = stdout.getvalue()
+            await ctx.send('```py\n{}{}\n```'.format(value, traceback.format_exc()))
+        else:
+            value = stdout.getvalue()
+            try:
+                await ctx.message.add_reaction('\u2705')
+            except:
+                pass
+
+            if ret is None:
+                if value:
+                    await ctx.send('```py\n%s\n```' % value)
+            else:
+                self._last_result = ret
+                await ctx.send('```py\n%s%s\n```' % (value, ret))
 
     @commands.command(name="status", brief="Status of the bot")
     async def cmdStatus(self, ctx: commands.Context):

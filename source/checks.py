@@ -12,14 +12,12 @@ async def checkAll(ctx: SlashContext) -> bool:
     if not botHasPerms(ctx):
         log.debug("Rejecting Command: Bot lacks perms")
         if botPerms.send_messages:
-            await ctx.respond()
             await ctx.send("Sorry, I dont have the permissions i need in this channel\n"
                            "I need: Send and Read Messages, add reactions, manage messages, and embed links")
         return False
 
     if not userHasPerms(ctx):
         log.debug("Rejecting Command: User lacks perms")
-        await ctx.respond(eat=True)
         await ctx.send("Sorry, you don't have the permissions required to use this.\n "
                        "You need `manage_server` or higher", hidden=True)
         return False
@@ -27,7 +25,6 @@ async def checkAll(ctx: SlashContext) -> bool:
     if not await checkGuildIsSetup(ctx):
         if ctx.subcommand_name != "simple":
             log.debug("Rejecting Command: Guild not setup")
-            await ctx.respond()
             await ctx.send("This server has not run the initial setup yet\n"
                            "Someone with manage_server perms or higher needs to run"
                            "`/setup simple` to get started")
@@ -41,13 +38,11 @@ async def checkUserAll(ctx) -> bool:
     if not botHasPerms(ctx):
         log.debug("Rejecting Command: Bot lacks perms")
         if botPerms.send_messages and botPerms.read_messages:
-            await ctx.respond()
             await ctx.send("Sorry, I dont have the permissions i need in this channel"
                            "I need: Send and Read Messages, add reactions, manage messages, and embed links")
             return False
     if not await checkGuildIsSetup(ctx):
         log.debug("Rejecting Command: Guild not setup")
-        await ctx.respond()
         await ctx.send("This server has not run the initial setup yet\n"
                        "Someone with manage_server perms or higher needs to run"
                        "`/setup simple` to get started")

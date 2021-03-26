@@ -45,7 +45,7 @@ class Config(commands.Cog):
     async def setupSimple(self, ctx: SlashContext):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
 
         _emb = utilities.defaultEmbed(title="Simple Setup")
 
@@ -170,7 +170,7 @@ class Config(commands.Cog):
     async def slashActive(self, ctx, state: str = "False"):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
         state = True if state == "True" else False
         if state:
             await self.bot.db.execute(
@@ -190,7 +190,7 @@ class Config(commands.Cog):
     async def slashSetTime(self, ctx: SlashContext, hour: int):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
         if hour == 24:
             hour = 0
         if hour > 24 or hour < 0:
@@ -209,7 +209,7 @@ class Config(commands.Cog):
     async def slashSetTimeZone(self, ctx: SlashContext, timezone: str):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
         # try and find a matching timezone
         matches = {}
         userInput = timezone.lower()
@@ -255,7 +255,7 @@ class Config(commands.Cog):
         """Sets the channel to ask questions"""
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
         _emb = utilities.defaultEmbed(title="Set QOTD Channel")
         if isinstance(channel, discord.TextChannel):
             if not await utilities.checkPermsInChannel(ctx.guild.get_member(user_id=self.bot.user.id), channel):
@@ -279,7 +279,7 @@ class Config(commands.Cog):
         """Sets a role that will be mentioned when a question is posted """
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
+        await ctx.defer()
         if isinstance(role, str) and clear is None:
             clear = role
             role = None
@@ -311,7 +311,6 @@ class Config(commands.Cog):
     async def slashSetPin(self, ctx, option: str = "False"):
         if not await checks.checkAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        await ctx.respond()
         option = True if option == "True" else False
         if option:
             await ctx.send("Okay, I'll pin questions from now on 📌")
