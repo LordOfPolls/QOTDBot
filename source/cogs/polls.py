@@ -63,8 +63,10 @@ class Polls(commands.Cog):
     async def processLegacyPoll(self, message):
         """It turns out some older polls before the poll update are still in use,
         this processes them with the old logic"""
-        log.debug("Processing legacy poll")
         originalEmbed = message.embeds[0]
+        if str(originalEmbed.title).startswith("Closed Poll-"):
+            return
+        log.debug("Processing legacy poll")
         embed = utilities.defaultEmbed(title=originalEmbed.title)
         embed.set_footer(text=originalEmbed.footer.text, icon_url=originalEmbed.footer.icon_url)
         # update fields
