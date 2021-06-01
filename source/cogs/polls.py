@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import typing
+from copy import copy
 from datetime import datetime, timedelta
 
 import redis
@@ -396,12 +397,12 @@ class Polls(commands.Cog):
 
     @cog_ext.cog_subcommand(
         base="poll_edit",
-        name="add",
+        name="add_option",
         description="Add an option to a poll",
         options=[
             manage_commands.create_option(
                 name="message_id",
-                description="The message id of the poll (hint, right click on it to get the ID",
+                description="The message id of the poll (hint, right click on it to get the ID)",
                 option_type=str,
                 required=True,
             ),
@@ -430,16 +431,112 @@ class Polls(commands.Cog):
                 Option(option_text=option_name, emoji=self.emoji[total_options])
             )
 
-            old_embed = message.embeds[0]
-            new_embed = utilities.defaultEmbed(title=old_embed.title)
-            new_embed.set_footer(
-                text=old_embed.footer.text, icon_url=old_embed.footer.icon_url
-            )
-            total_votes = 0
-            for _option in poll.options:
-                total_votes += len(_option.voters)
+            await self.update_poll_message(ctx, message, poll)
+            await ctx.send(f"`{option_name}` was added to that poll")
 
-            buttons = []
+        else:
+            await ctx.send(
+                "Sorry, I could not find that message, this support article might help: https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-"
+            )
+
+    @cog_ext.cog_subcommand(
+        base="poll_edit",
+        name="remove_option",
+        description="Remove an option from a poll",
+        options=[
+            manage_commands.create_option(
+                name="message_id",
+                description="The message id of the poll (hint, right click on it to get the ID)",
+                option_type=str,
+                required=True,
+            ),
+            manage_commands.create_option(
+                name="option_index",
+                description="The index of the option (starting at 1) ",
+                option_type=int,
+                required=True,
+            ),
+        ],
+    )
+    async def poll_add_option(
+        self, ctx: SlashContext, message_id: str, option_index: int
+    ):
+        """Add an option to an existing poll"""
+        await ctx.defer()
+        poll = await self.get_poll(int(message_id))
+        if poll:
+            message = await self.bot.getMessage(
+                poll.message_id, self.bot.get_channel(poll.channel_id)
+            )
+
+            total_options = len(poll.options)
+            if option_index > total_options or option_index <= 0:
+                return await ctx.send(
+                    f"Sorry there is no option at index `{option_index}`"
+                )
+            temp_option = copy(poll.options[option_index - 1])
+            poll.options.pop(option_index - 1)
+
+            await self.update_poll_message(ctx, message, poll)
+            await ctx.send(f"`{temp_option.text}` was removed from the poll")
+
+        else:
+            await ctx.send(
+                "Sorry, I could not find that message, this support article might help: https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-"
+            )
+
+    @cog_ext.cog_subcommand(
+        base="poll_edit",
+        name="title",
+        description="Change the title of a poll",
+        options=[
+            manage_commands.create_option(
+                name="message_id",
+                description="The message id of the poll (hint, right click on it to get the ID)",
+                option_type=str,
+                required=True,
+            ),
+            manage_commands.create_option(
+                name="poll_title",
+                description="The new title of the poll",
+                option_type=str,
+                required=True,
+            ),
+        ],
+    )
+    async def poll_edit_title(
+        self, ctx: SlashContext, message_id: str, poll_title: str
+    ):
+        """Edit the title of a poll"""
+        await ctx.defer()
+        poll = await self.get_poll(int(message_id))
+        if poll:
+            message = await self.bot.getMessage(
+                poll.message_id, self.bot.get_channel(poll.channel_id)
+            )
+            poll.title = poll_title
+
+            await self.update_poll_message(ctx, message, poll)
+            await ctx.send(f"Your poll has been renamed to `{poll.title}`")
+
+        else:
+            await ctx.send(
+                "Sorry, I could not find that message, this support article might help: https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-"
+            )
+
+    async def update_poll_message(self, ctx, message, poll):
+        old_embed = message.embeds[0]
+        new_embed = utilities.defaultEmbed(title=f"Poll - {poll.title}")
+        new_embed.set_footer(
+            text=old_embed.footer.text, icon_url=old_embed.footer.icon_url
+        )
+        total_votes = 0
+        for _option in poll.options:
+            total_votes += len(_option.voters)
+        buttons = []
+        if len(poll.options) == 0:
+            new_embed.description = "If there are no options, can we finally agree?"
+        else:
             for i in range(len(poll.options)):
                 _option = poll.options[i]
                 new_embed.add_field(
@@ -454,31 +551,26 @@ class Polls(commands.Cog):
                         emoji=_option.emoji,
                     )
                 )
-            await asyncio.to_thread(self.redis.set, message.id, jsonpickle.encode(poll))
             new_embed.description = f"{total_votes} vote{'s' if total_votes > 1 or total_votes == 0 else ''}"
+        await asyncio.to_thread(self.redis.set, message.id, jsonpickle.encode(poll))
 
-            # assemble action_rows
-            action_row_buttons = []
-            components = []
-            for button in buttons:
-                action_row_buttons.append(button)
-                if len(action_row_buttons) == 5:
-                    components.append(
-                        manage_components.create_actionrow(*action_row_buttons)
-                    )
-                    action_row_buttons = []
-            if len(action_row_buttons) != 0:
+        # assemble action_rows
+        action_row_buttons = []
+        components = []
+        for button in buttons:
+            action_row_buttons.append(button)
+            if len(action_row_buttons) == 5:
                 components.append(
                     manage_components.create_actionrow(*action_row_buttons)
                 )
+                action_row_buttons = []
+        if len(action_row_buttons) != 0:
+            components.append(manage_components.create_actionrow(*action_row_buttons))
+        await message.edit(embed=new_embed, components=components)
 
-            await message.edit(embed=new_embed, components=components)
-            await ctx.send(f"`{option_name}` was added to that poll")
-
-        else:
-            await ctx.send(
-                "Sorry, I could not find that message, this support article might help: https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-"
-            )
+        if len(poll.options) == 0:
+            # auto close empty poll
+            await self.close_poll(poll)
 
     async def reactionProcessor(self, payload: discord.RawReactionActionEvent):
         """Processing the reaction event to determine if a poll needs updating"""
