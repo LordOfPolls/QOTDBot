@@ -419,7 +419,12 @@ class Polls(commands.Cog):
     ):
         """Add an option to an existing poll"""
         await ctx.defer()
-        poll = await self.get_poll(int(message_id))
+        try:
+            poll = await self.get_poll(int(message_id))
+        except:
+            return await ctx.send(
+                "Sorry, I could not find that message, this support article might help: https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-"
+            )
         if poll:
             message = await self.bot.getMessage(
                 poll.message_id, self.bot.get_channel(poll.channel_id)
@@ -463,7 +468,12 @@ class Polls(commands.Cog):
     ):
         """Add an option to an existing poll"""
         await ctx.defer()
-        poll = await self.get_poll(int(message_id))
+        try:
+            poll = await self.get_poll(int(message_id))
+        except:
+            return await ctx.send(
+                "Sorry, I could not find that message, this support article might help: https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-"
+            )
         if poll:
             message = await self.bot.getMessage(
                 poll.message_id, self.bot.get_channel(poll.channel_id)
@@ -509,7 +519,12 @@ class Polls(commands.Cog):
     ):
         """Edit the title of a poll"""
         await ctx.defer()
-        poll = await self.get_poll(int(message_id))
+        try:
+            poll = await self.get_poll(int(message_id))
+        except:
+            return await ctx.send(
+                "Sorry, I could not find that message, this support article might help: https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-"
+            )
         if poll:
             message = await self.bot.getMessage(
                 poll.message_id, self.bot.get_channel(poll.channel_id)
