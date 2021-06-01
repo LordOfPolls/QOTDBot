@@ -156,16 +156,16 @@ class Polls(commands.Cog):
             log.error(e)
             return None
 
-    @tasks.loop(seconds=10)
+    @tasks.loop(seconds=30)
     async def closePollsTask(self):
         """Checks the stored polls to see if they should be closed"""
-        log.info("Checking poll end times...")
+        log.spam("Checking poll end times...")
         keys = await asyncio.to_thread(self.redis.keys, "*")
         for key in keys:
             poll = await self.get_poll(key)
             if poll.expiry_time is not None:
                 if poll.expiry_time < datetime.now():
-                    log.info(f"Poll needs closing: {poll.message_id}")
+                    log.spam(f"Poll needs closing: {poll.message_id}")
 
                     await self.close_poll(poll)
 
