@@ -278,7 +278,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
 
     @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(**jsonManager.getDecorator("suggestion.approve"))
-    async def slashApproveSuggestion(self, ctx: SlashContext, questionID: int):
+    async def slashApproveSuggestion(self, ctx: SlashContext, questionid: int):
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
         await ctx.defer()
@@ -292,11 +292,11 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
         for questionData in data:
             questions.append(questionData)
             question += 1
-        if questionID > question or questionID <= 0:
+        if questionid > question or questionid <= 0:
             return await ctx.send("No question found with that ID")
 
         try:
-            questData = questions[questionID - 1]
+            questData = questions[questionid - 1]
         except IndexError:
             return await ctx.send("No question found with that ID")
         author = self.bot.get_user(id=int(questData["authorID"]))
@@ -330,7 +330,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
 
     @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(**jsonManager.getDecorator("suggestion.reject"))
-    async def slashDenySuggestion(self, ctx: SlashContext, questionID: int):
+    async def slashDenySuggestion(self, ctx: SlashContext, questionid: int):
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
         await ctx.defer()
@@ -344,11 +344,11 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
         for questionData in data:
             questions.append(questionData)
             question += 1
-        if questionID > question or questionID <= 0:
+        if questionid > question or questionid <= 0:
             return await ctx.send("No question found with that ID")
 
         try:
-            questData = questions[questionID - 1]
+            questData = questions[questionid - 1]
         except IndexError:
             return await ctx.send("No question found with that ID")
         author = self.bot.get_user(id=int(questData["authorID"]))
