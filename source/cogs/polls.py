@@ -458,7 +458,7 @@ class Polls(commands.Cog):
             ),
         ],
     )
-    async def poll_add_option(
+    async def poll_remove_option(
         self, ctx: SlashContext, message_id: str, option_index: int
     ):
         """Add an option to an existing poll"""
