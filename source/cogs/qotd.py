@@ -31,26 +31,27 @@ class QOTD(commands.Cog):
         # chance it can fail if not checked second by second
         self.scheduler = AsyncIOScheduler()  # the task scheduler
 
-
-
     async def rescheduleTask(self, guildID):
         """Reschedules a task"""
         guildID = str(guildID)
         guildData = await self.bot.db.execute(
-            f"SELECT * FROM QOTDBot.guilds WHERE guildID = '{guildID}'",
-            getOne=True
+            f"SELECT * FROM QOTDBot.guilds WHERE guildID = '{guildID}'", getOne=True
         )
-        time = utilities.convertTime(guildData['timeZone'], guildData['sendTime'])
+        time = utilities.convertTime(guildData["timeZone"], guildData["sendTime"])
         try:
-            self.scheduler.reschedule_job(job_id=guildID, trigger=cron.CronTrigger(hour=time.hour, minute=0))
+            self.scheduler.reschedule_job(
+                job_id=guildID, trigger=cron.CronTrigger(hour=time.hour, minute=0)
+            )
             log.debug(f"Job {guildID} rescheduled to {time.hour:02}:{time.minute:02}")
         except JobLookupError:
             # if job doesnt exist, create one
-            self.scheduler.add_job(id=str(guildID),
-                                   name=f"QOTD TASK FOR {guildID}",
-                                   trigger=cron.CronTrigger(hour=time.hour, minute=time.minute),
-                                   func=self.sendTask,
-                                   kwargs={"guildID": guildID})
+            self.scheduler.add_job(
+                id=str(guildID),
+                name=f"QOTD TASK FOR {guildID}",
+                trigger=cron.CronTrigger(hour=time.hour, minute=time.minute),
+                func=self.sendTask,
+                kwargs={"guildID": guildID},
+            )
             log.debug(f"Job {guildID} created for {time.hour:02}:{time.minute:02}")
         except Exception as e:
             log.error(f"Failed to reschedule job:{guildID}. Reason: {e}")
@@ -58,37 +59,43 @@ class QOTD(commands.Cog):
     async def setup(self):
         """Creates the jobs for sending qotd to servers"""
         try:
-            guilds = await self.bot.db.execute(
-                f"SELECT * FROM QOTDBot.guilds"
-            )
+            guilds = await self.bot.db.execute(f"SELECT * FROM QOTDBot.guilds")
             for guild in guilds:
                 try:
-                    if bool(guild['enabled']):
-                        if guild['qotdChannel'] is not None and \
-                                guild['timeZone'] is not None and \
-                                guild['sendTime'] is not None:
+                    if bool(guild["enabled"]):
+                        if (
+                            guild["qotdChannel"] is not None
+                            and guild["timeZone"] is not None
+                            and guild["sendTime"] is not None
+                        ):
                             # "if all required vars are set"
-                            if self.bot.get_guild(int(guild['guildID'])):
-                                qotdChannel = self.bot.get_channel(int(guild['qotdChannel']))
+                            if self.bot.get_guild(int(guild["guildID"])):
+                                qotdChannel = self.bot.get_channel(
+                                    int(guild["qotdChannel"])
+                                )
                                 if qotdChannel:
-                                    timeZone = guild['timeZone']
-                                    sendTime = guild['sendTime']
+                                    timeZone = guild["timeZone"]
+                                    sendTime = guild["sendTime"]
 
                                     # convert time to local time and schedule a task
                                     time = utilities.convertTime(timeZone, sendTime)
                                     job = self.scheduler.add_job(
-                                        id=str(guild['guildID']),
+                                        id=str(guild["guildID"]),
                                         name=f"QOTD TASK FOR {guild['guildID']}",
-                                        trigger=cron.CronTrigger(hour=time.hour,
-                                                                 minute=time.minute),
+                                        trigger=cron.CronTrigger(
+                                            hour=time.hour, minute=time.minute
+                                        ),
                                         func=self.sendTask,
-                                        kwargs={"guildID": guild['guildID']}
+                                        kwargs={"guildID": guild["guildID"]},
                                     )
 
                                     log.debug(
-                                        f"Created job {job.id} @ {time.hour:02}:{time.minute:02} [{timeZone}:{sendTime:02}:00]")
+                                        f"Created job {job.id} @ {time.hour:02}:{time.minute:02} [{timeZone}:{sendTime:02}:00]"
+                                    )
                 except Exception as e:
-                    log.critical(f"Error while creating QOTD job for {guild['guildID']}: {e}")
+                    log.critical(
+                        f"Error while creating QOTD job for {guild['guildID']}: {e}"
+                    )
             log.info("Starting AIOScheduler")
             self.scheduler.start()
         except Exception as e:
@@ -97,12 +104,15 @@ class QOTD(commands.Cog):
     async def checkSimilarity(self, ctx, question, mode, embed):
         # prevent duplicate questions being added
         questPool = await self.bot.db.execute(
-            f"SELECT * FROM QOTDBot.questions WHERE guildID = '{mode}'")
+            f"SELECT * FROM QOTDBot.questions WHERE guildID = '{mode}'"
+        )
         if len(questPool) > 0:
             results = {}
             for _quest in questPool:
-                fuzzResult = fuzz.ratio(question.lower(), _quest['questionText'].lower())
-                results[_quest['questionText']] = fuzzResult
+                fuzzResult = fuzz.ratio(
+                    question.lower(), _quest["questionText"].lower()
+                )
+                results[_quest["questionText"]] = fuzzResult
             # mostSimilar = max(results, key=results.get)
 
             topQuestions = Counter(results)
@@ -126,9 +136,11 @@ class QOTD(commands.Cog):
                 message = await ctx.send(embed=_emb)
                 accept = await utilities.YesOrNoReactionCheck(ctx, message)
                 if not accept:
-                    await message.edit(embed=utilities.defaultEmbed(
-                        colour=discord.Colour.dark_red(),
-                        title="Cancelled 👌"))
+                    await message.edit(
+                        embed=utilities.defaultEmbed(
+                            colour=discord.Colour.dark_red(), title="Cancelled 👌"
+                        )
+                    )
                     return False
         return True
 
@@ -141,7 +153,10 @@ class QOTD(commands.Cog):
         await ctx.defer()
         mode = ctx.guild.id
         embed = utilities.defaultEmbed(title="Adding Question")
-        embed.set_footer(icon_url=self.bot.user.avatar_url, text=f"{self.bot.user.name} • Custom Questions")
+        embed.set_footer(
+            icon_url=self.bot.user.avatar_url,
+            text=f"{self.bot.user.name} • Custom Questions",
+        )
 
         if await self.checkSimilarity(ctx, question, mode, embed):
             question = await self.bot.db.escape(question)
@@ -160,12 +175,13 @@ class QOTD(commands.Cog):
         await ctx.defer()
         info = await self.bot.db.execute(
             f"SELECT qotdChannel FROM QOTDBot.guilds WHERE guildID = '{ctx.guild.id}'",
-            getOne=True
+            getOne=True,
         )
-        channel = self.bot.get_channel(int(info['qotdChannel']))
+        channel = self.bot.get_channel(int(info["qotdChannel"]))
         if not channel:
             return await ctx.send(
-                "There was an error accessing your qotd channel, do i have permission to send in it?")
+                "There was an error accessing your qotd channel, do i have permission to send in it?"
+            )
         if await self.onPost(ctx.guild, channel):
             await ctx.send("Sent :mailbox_with_mail:")
         else:
@@ -181,32 +197,43 @@ class QOTD(commands.Cog):
             f"""SELECT COUNT(*) FROM QOTDBot.questions
 WHERE questions.guildID = '{ctx.guild.id}' AND questionID NOT IN (
 SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID = '{ctx.guild.id}'
-)""", getOne=True)
+)""",
+            getOne=True,
+        )
 
         defaultQuestions = await self.bot.db.execute(
             f"""SELECT COUNT(*) FROM QOTDBot.questions
 WHERE questions.guildID = '0' AND questionID NOT IN (
 SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID = '{ctx.guild.id}'
-)""", getOne=True)
+)""",
+            getOne=True,
+        )
 
-        customQuestions = customQuestions['COUNT(*)']
-        defaultQuestions = defaultQuestions['COUNT(*)']
+        customQuestions = customQuestions["COUNT(*)"]
+        defaultQuestions = defaultQuestions["COUNT(*)"]
 
         _emb = utilities.defaultEmbed(title="Remaining questions")
         _emb.add_field(name="Default Questions:", value=defaultQuestions)
         _emb.add_field(name="Custom Questions:", value=customQuestions)
 
-        _emb.set_footer(text="These are questions that have not been asked in your server yet")
+        _emb.set_footer(
+            text="These are questions that have not been asked in your server yet"
+        )
 
         await ctx.send(embed=_emb)
 
     @commands.check(checks.checkUserAll)
     @cog_ext.cog_subcommand(**jsonManager.getDecorator("suggestion.add"))
-    async def slashSuggest(self, ctx: SlashContext, question: str, HideQuestion: str = "False",
-                           defaultQuestion: bool = False):
+    async def slashSuggest(
+        self,
+        ctx: SlashContext,
+        question: str,
+        hidequestion: str = "False",
+        defaultQuestion: bool = False,
+    ):
         if not await checks.checkUserAll(ctx):  # decorators arent 100% reliable yet
             raise discord_slash.error.CheckFailure
-        HideQuestion = True if HideQuestion == "True" else False
+        HideQuestion = True if hidequestion == "True" else False
         await ctx.defer(hidden=HideQuestion)
         question = await self.bot.db.escape(question)
         await self.bot.db.execute(
@@ -214,12 +241,14 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
             f"('{question}', {ctx.author.id}, {ctx.guild.id})"
         )
         if HideQuestion:
-            await ctx.send(
-                content="Your question has been submitted")
+            await ctx.send(content="Your question has been submitted")
         else:
-            await ctx.send(embed=utilities.defaultEmbed(
-                title=f"Your Question Has Been Submitted",
-                colour=discord.Colour.green()))
+            await ctx.send(
+                embed=utilities.defaultEmbed(
+                    title=f"Your Question Has Been Submitted",
+                    colour=discord.Colour.green(),
+                )
+            )
 
     @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(**jsonManager.getDecorator("suggestion.list"))
@@ -228,23 +257,24 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
             raise discord_slash.error.CheckFailure
         await ctx.defer()
         data = await self.bot.db.execute(
-            f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
+            f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'"
+        )
         emb = utilities.defaultEmbed(title="Suggested Questions")
 
         questions = []
         question = 1
         for questionData in data:
-            author = self.bot.get_user(id=int(questionData['authorID']))
+            author = self.bot.get_user(id=int(questionData["authorID"]))
             authorName = author.name if author is not None else "Unknown"
-            questions.append(f"`{question}.` {questionData['question']}\n`Submitted by {authorName}`")
+            questions.append(
+                f"`{question}.` {questionData['question']}\n`Submitted by {authorName}`"
+            )
             question += 1
 
         pageNum = 0
         await utilities.paginator.LinePaginator.paginate(
-            questions,
-            ctx=ctx,
-            embed=emb,
-            max_lines=10, empty=False)
+            questions, ctx=ctx, embed=emb, max_lines=10, empty=False
+        )
 
     @commands.check(checks.checkAll)
     @cog_ext.cog_subcommand(**jsonManager.getDecorator("suggestion.approve"))
@@ -253,7 +283,8 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
             raise discord_slash.error.CheckFailure
         await ctx.defer()
         data = await self.bot.db.execute(
-            f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
+            f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'"
+        )
         emb = utilities.defaultEmbed(title="Approved Question")
 
         questions = []
@@ -268,11 +299,13 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
             questData = questions[questionID - 1]
         except IndexError:
             return await ctx.send("No question found with that ID")
-        author = self.bot.get_user(id=int(questData['authorID']))
+        author = self.bot.get_user(id=int(questData["authorID"]))
 
         try:
-            if await self.checkSimilarity(ctx, questData['question'], ctx.guild.id, emb):
-                question = await self.bot.db.escape(questData['question'])
+            if await self.checkSimilarity(
+                ctx, questData["question"], ctx.guild.id, emb
+            ):
+                question = await self.bot.db.escape(questData["question"])
                 await self.bot.db.execute(
                     f"DELETE FROM QOTDBot.suggestedQuestions WHERE suggestionID = {questData['suggestionID']}"
                 )
@@ -284,11 +317,15 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                 return
         except Exception as e:
             log.error(e)
-            return await ctx.send("Failed to process question... Please try again later :cry:")
+            return await ctx.send(
+                "Failed to process question... Please try again later :cry:"
+            )
         else:
-            emb.description = questData['question']
+            emb.description = questData["question"]
             if author:
-                emb.set_footer(text=f"Submitted by {author.name}", icon_url=author.avatar_url)
+                emb.set_footer(
+                    text=f"Submitted by {author.name}", icon_url=author.avatar_url
+                )
             await ctx.send(embed=emb)
 
     @commands.check(checks.checkAll)
@@ -298,7 +335,8 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
             raise discord_slash.error.CheckFailure
         await ctx.defer()
         data = await self.bot.db.execute(
-            f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'")
+            f"SELECT * FROM QOTDBot.suggestedQuestions WHERE guildID = '{ctx.guild.id}'"
+        )
         emb = utilities.defaultEmbed(title="Rejected Question")
 
         questions = []
@@ -313,7 +351,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
             questData = questions[questionID - 1]
         except IndexError:
             return await ctx.send("No question found with that ID")
-        author = self.bot.get_user(id=int(questData['authorID']))
+        author = self.bot.get_user(id=int(questData["authorID"]))
 
         try:
             await self.bot.db.execute(
@@ -321,15 +359,24 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
             )
         except Exception as e:
             log.error(e)
-            return await ctx.send("Failed to process question... Please try again later :cry:")
+            return await ctx.send(
+                "Failed to process question... Please try again later :cry:"
+            )
         else:
-            emb.description = questData['question']
+            emb.description = questData["question"]
             if author:
-                emb.set_footer(text=f"Submitted by {author.name}", icon_url=author.avatar_url)
+                emb.set_footer(
+                    text=f"Submitted by {author.name}", icon_url=author.avatar_url
+                )
             await ctx.send(embed=emb)
 
-    async def onPost(self, guild: discord.Guild, qotdChannel: discord.TextChannel, rolesToMention=None,
-                     customPriority: bool = False):
+    async def onPost(
+        self,
+        guild: discord.Guild,
+        qotdChannel: discord.TextChannel,
+        rolesToMention=None,
+        customPriority: bool = False,
+    ):
         """Selects a question to be posted, from both the default list and custom list"""
         try:
             await qotdChannel.trigger_typing()
@@ -337,7 +384,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
             source = "Default Question"
             guildConfig = await self.bot.db.execute(
                 f"SELECT * FROM QOTDBot.guilds WHERE guildID = '{guild.id}'",
-                getOne=True
+                getOne=True,
             )
             # get question from DB
             customQuestion = await self.bot.db.execute(
@@ -346,7 +393,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                 f"SELECT questionID FROM QOTDBot.questionLog "
                 f"WHERE questionLog.guildID = '{guild.id}')"
                 f"ORDER BY RAND() LIMIT 1",
-                getOne=True
+                getOne=True,
             )
 
             defaultQuestion = await self.bot.db.execute(
@@ -355,7 +402,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                 f"SELECT questionID FROM QOTDBot.questionLog "
                 f"WHERE questionLog.guildID = '{guild.id}')"
                 f"ORDER BY RAND() LIMIT 1",
-                getOne=True
+                getOne=True,
             )
             if customQuestion:
                 source = "Custom Question"
@@ -367,24 +414,29 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                 return log.error("No questions left!")
 
             emb = discord.Embed(colour=discord.Colour.blurple())
-            if len(question['questionText']) > 200:
-                emb.description = question['questionText']
+            if len(question["questionText"]) > 200:
+                emb.description = question["questionText"]
                 emb.title = "Question of The Day"
             else:
-                emb.title = question['questionText']
-            emb.set_footer(icon_url=self.bot.user.avatar_url, text=f"{self.bot.user.name} • {source}")
+                emb.title = question["questionText"]
+            emb.set_footer(
+                icon_url=self.bot.user.avatar_url,
+                text=f"{self.bot.user.name} • {source}",
+            )
             try:
                 qotdMessage = await qotdChannel.send(embed=emb)
 
                 # if guild wants qotd pinning
-                if guildConfig['pinMessage'] == 1:
+                if guildConfig["pinMessage"] == 1:
                     await qotdMessage.pin(reason="/setup pin is enabled")
 
                 # if guild wants a role to be pinged, this ghost pings them
-                if guildConfig['mentionRole'] is not None:
-                    role: discord.Role = guild.get_role(int(guildConfig['mentionRole']))
+                if guildConfig["mentionRole"] is not None:
+                    role: discord.Role = guild.get_role(int(guildConfig["mentionRole"]))
                     if role:
-                        msg = await qotdChannel.send(role.mention)
+                        msg = await qotdChannel.send(
+                            role.mention, allowed_mentions=discord.AllowedMentions.all()
+                        )
                         await asyncio.sleep(1)
                         await msg.delete()
 
@@ -398,14 +450,18 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                 return True
         except discord.Forbidden:
             try:
-                await guild.owner.send("An error occurred while trying to send your question, "
-                                       "I am missing permissions in your requested channel. Please make sure I can "
-                                       "send messages, manage messages, embed links, and add reactions in the desired channel")
+                await guild.owner.send(
+                    "An error occurred while trying to send your question, "
+                    "I am missing permissions in your requested channel. Please make sure I can "
+                    "send messages, manage messages, embed links, and add reactions in the desired channel"
+                )
             except:
                 try:
-                    await guild.system_channel.send("An error occurred while trying to send your question, "
-                                                    "I am missing permissions in your requested channel. Please make sure I can "
-                                                    "send messages, manage messages, embed links, and add reactions in the desired channel")
+                    await guild.system_channel.send(
+                        "An error occurred while trying to send your question, "
+                        "I am missing permissions in your requested channel. Please make sure I can "
+                        "send messages, manage messages, embed links, and add reactions in the desired channel"
+                    )
                 except:
                     pass
             log.error(f"Missing permissions to send qotd in {guild.id}: {guild.name}")
@@ -415,12 +471,10 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
         """The scheduled task for sending qotd"""
         me = self.scheduler.get_job(job_id=str(guildID))
         _guild = await self.bot.db.execute(
-            "SELECT * FROM QOTDBot.guilds "
-            f"WHERE guildID = '{guildID}'",
-            getOne=True
+            "SELECT * FROM QOTDBot.guilds " f"WHERE guildID = '{guildID}'", getOne=True
         )
         try:
-            if _guild['enabled'] == 0:
+            if _guild["enabled"] == 0:
                 log.debug(f"{guildID} disabled qotd, not sending")
                 return
         except TypeError:
@@ -433,7 +487,7 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                 return
         guild = self.bot.get_guild(int(guildID))
         if guild:
-            qotdChannel = _guild['qotdChannel']
+            qotdChannel = _guild["qotdChannel"]
             qotdChannel = self.bot.get_channel(int(qotdChannel))
             if qotdChannel:
                 await self.onPost(guild, qotdChannel)
@@ -453,6 +507,6 @@ def setup(bot):
 
 def teardown(bot):
     """Called when this cog is unmounted"""
-    log.warning('QOTD un-mounted')
+    log.warning("QOTD un-mounted")
     for handler in log.handlers[:]:
         log.removeHandler(handler)
