@@ -378,6 +378,8 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
         customPriority: bool = False,
     ):
         """Selects a question to be posted, from both the default list and custom list"""
+        qotdMessage = None
+
         try:
             await qotdChannel.trigger_typing()
             question = None
@@ -441,7 +443,18 @@ SELECT questionLog.questionID FROM QOTDBot.questionLog WHERE questionLog.guildID
                         await msg.delete()
 
             except Exception as e:
-                log.error(f"Unable to post question to {guild.id}: {e}")
+                if qotdMessage is not None:
+                    await self.bot.db.execute(
+                        f"INSERT INTO QOTDBot.questionLog (questionID, guildID, posted, datePosted) "
+                        f"VALUES ({question['questionID']}, '{guild.id}', TRUE, '{datetime.now()}')"
+                    )
+                    if "maximum number of pins" in str(e).lower():
+                        await qotdMessage.edit(
+                            content="⚠ Unable to pin: maximum pins in channel"
+                        )
+                    return True
+                else:
+                    log.error(f"Unable to post question to {guild.id}: {e}")
             else:
                 await self.bot.db.execute(
                     f"INSERT INTO QOTDBot.questionLog (questionID, guildID, posted, datePosted) "
