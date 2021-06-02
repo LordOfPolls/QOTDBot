@@ -56,7 +56,7 @@ class Option:
 class Polls(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        strEmoji = "1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🇦 🇧 🇨 🇩 🇪 🇫 🇬 🇭"
+        strEmoji = "1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🇦 🇧 🇨 🇩 🇪 🇫 🇬 🇭 🇮 🇯"
         self.emoji = strEmoji.split(" ")
         self.booleanEmoji = ["✔", "✖"]
         self.bothEmoji = self.emoji + self.booleanEmoji
